@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#E0F2FE" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="BreyHabitos" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <title>BreyHabitos - Gestión de Hábitos y Salud Renal</title>
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+      /* In-App Native Splash Screen styles (clean CSS, 0 delay, vanishes upon React mount) */
+      #splash-container {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 50%, #BAE6FD 100%);
+        font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        z-index: 9999;
+        overflow: hidden;
+      }
+      .water-stage {
+        position: relative;
+        width: 130px;
+        height: 130px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+      }
+      .splash-logo {
+        width: 88px;
+        height: 88px;
+        border-radius: 26px;
+        box-shadow: 0 14px 34px rgba(2, 132, 199, 0.22);
+        animation: logoPulse 2.2s ease-in-out infinite;
+        position: relative;
+        z-index: 2;
+      }
+      .splash-ripple {
+        position: absolute;
+        border-radius: 50%;
+        border: 2px solid #38BDF8;
+        opacity: 0;
+        animation: rippleWave 2.2s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
+      }
+      .splash-ripple.delay-1 {
+        animation-delay: 0.7s;
+      }
+      .splash-ripple.delay-2 {
+        animation-delay: 1.2s;
+      }
+      @keyframes logoPulse {
+        0%, 100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+      }
+      @keyframes rippleWave {
+        0% {
+          width: 60px;
+          height: 60px;
+          opacity: 0.8;
+          transform: scale(0.6);
+        }
+        100% {
+          width: 140px;
+          height: 140px;
+          opacity: 0;
+          transform: scale(1.6);
+        }
+      }
+      .splash-brand {
+        text-align: center;
+        animation: splashFadeIn 0.8s ease-out forwards;
+      }
+      .splash-title {
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        color: #0369A1;
+        margin: 0;
+        text-shadow: 0 2px 8px rgba(3, 105, 161, 0.15);
+      }
+      .splash-sub {
+        font-size: 13px;
+        font-weight: 600;
+        color: #0284C7;
+        margin-top: 6px;
+        letter-spacing: 0.05em;
+        opacity: 0.85;
+      }
+      @keyframes splashFadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-sky-50 text-slate-900 font-sans antialiased min-h-screen selection:bg-sky-500 selection:text-white">
+    <div id="root">
+      <div id="splash-container">
+        <div class="water-stage">
+          <img src="/logo.png" alt="BreyHabitos" class="splash-logo" />
+          <div class="splash-ripple delay-1"></div>
+          <div class="splash-ripple delay-2"></div>
+        </div>
+        <div class="splash-brand">
+          <h1 class="splash-title">BreyHabitos</h1>
+          <p class="splash-sub">Cuidando de ti...</p>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

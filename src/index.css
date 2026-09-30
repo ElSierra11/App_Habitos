@@ -1,0 +1,239 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --safe-area-inset-top: env(safe-area-inset-top, 0px);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  body {
+    @apply bg-gradient-to-br from-[#E8F4F8] via-[#F0F9FF] to-[#E0F2FE] dark:from-[#090E17] dark:via-[#0F172A] dark:to-[#0B1220] text-slate-800 dark:text-slate-100 min-h-screen overflow-x-hidden antialiased transition-colors duration-300;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Glassmorphism Design System (Water & Crystal) */
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(186, 230, 253, 0.75);
+  box-shadow: 0 10px 30px -10px rgba(2, 132, 199, 0.08), 0 4px 10px -2px rgba(2, 132, 199, 0.04);
+}
+
+.dark .glass-card {
+  background: rgba(15, 23, 42, 0.85);
+  border-color: rgba(30, 41, 59, 0.8);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), 0 4px 10px -2px rgba(0, 0, 0, 0.3);
+}
+
+.glass-card-elevated {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(186, 230, 253, 0.9);
+  box-shadow: 0 20px 40px -15px rgba(2, 132, 199, 0.14);
+}
+
+.dark .glass-card-elevated {
+  background: rgba(15, 23, 42, 0.95);
+  border-color: rgba(51, 65, 85, 0.8);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+}
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(186, 230, 253, 0.7);
+}
+
+.dark .glass-nav {
+  background: rgba(15, 23, 42, 0.88);
+  border-bottom: 1px solid rgba(30, 41, 59, 0.8);
+}
+
+/* Custom Water Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #E0F2FE;
+}
+.dark ::-webkit-scrollbar-track {
+  background: #0F172A;
+}
+::-webkit-scrollbar-thumb {
+  background: #7DD3FC;
+  border-radius: 9999px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #0284C7;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #0284C7;
+}
+
+/* Liquid Water Wave Container Animation */
+.water-tank-wave {
+  position: absolute;
+  left: 0;
+  width: 200%;
+  height: 100%;
+  background-repeat: repeat-x;
+  animation: waveMotion 7s cubic-bezier(0.36, 0.45, 0.63, 0.53) infinite;
+}
+
+@keyframes waveMotion {
+  0% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-25%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* Water Ripple Pulse */
+@keyframes waterRipple {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+.animate-water-ripple {
+  animation: waterRipple 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Caretaker Message Shimmer Glow */
+.care-shimmer-border {
+  position: relative;
+  overflow: hidden;
+}
+
+.care-shimmer-border::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(14, 165, 233, 0.15) 50%,
+    transparent 100%
+  );
+  animation: careShimmer 4s infinite linear;
+  pointer-events: none;
+}
+
+@keyframes careShimmer {
+  0% {
+    left: -150%;
+  }
+  100% {
+    left: 150%;
+  }
+}
+
+/* Global Dark Mode Tokens & Surface Adaptations */
+.dark .bg-white\/90,
+.dark .bg-white\/95,
+.dark .bg-white\/85,
+.dark .bg-white\/80,
+.dark .bg-white {
+  background-color: rgba(15, 23, 42, 0.92);
+}
+
+.dark .border-sky-100,
+.dark .border-sky-200,
+.dark .border-sky-100\/90 {
+  border-color: rgba(30, 41, 59, 0.9);
+}
+
+.dark .text-slate-900,
+.dark .text-slate-800 {
+  color: #F8FAFC;
+}
+
+.dark .text-slate-700 {
+  color: #E2E8F0;
+}
+
+.dark .text-slate-600,
+.dark .text-slate-500 {
+  color: #94A3B8;
+}
+
+.dark .bg-sky-50,
+.dark .bg-sky-50\/80,
+.dark .bg-slate-50,
+.dark .bg-slate-100 {
+  background-color: rgba(30, 41, 59, 0.6);
+}
+
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.dark textarea {
+  background-color: #0F172A;
+  color: #F8FAFC;
+  border-color: #334155;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748B;
+}
+
+/* Mobile Ergonomics & Safe Area */
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+}
+
+.pt-safe {
+  padding-top: max(env(safe-area-inset-top, 0px), 12px);
+}
+
+/* Prevent tap highlight blue flash on mobile devices */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Glass Floating Action Bar on Mobile */
+.glass-bottom-bar {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(186, 230, 253, 0.8);
+  box-shadow: 0 -8px 24px -4px rgba(2, 132, 199, 0.1);
+}
+
+.dark .glass-bottom-bar {
+  background: rgba(15, 23, 42, 0.92);
+  border-top: 1px solid rgba(30, 41, 59, 0.85);
+  box-shadow: 0 -8px 24px -4px rgba(0, 0, 0, 0.5);
+}
+
+/* Neon glow badges for status indicators in dark mode */
+.dark .badge-glow-emerald {
+  box-shadow: 0 0 12px -2px rgba(16, 185, 129, 0.4);
+}
+
+.dark .badge-glow-sky {
+  box-shadow: 0 0 12px -2px rgba(14, 165, 233, 0.4);
+}
+
+.dark .badge-glow-amber {
+  box-shadow: 0 0 12px -2px rgba(245, 158, 11, 0.4);
+}
+
