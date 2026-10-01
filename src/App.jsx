@@ -8,7 +8,11 @@ import {
   Eye, 
   ChefHat,
   Activity,
-  BarChart3
+  BarChart3,
+  Utensils,
+  Heart,
+  ShieldAlert,
+  MessageSquareHeart
 } from 'lucide-react';
 
 import { Navbar } from './components/Navbar';
@@ -30,6 +34,9 @@ import { CloudSyncModal } from './components/CloudSyncModal';
 import { DeviceSyncModal } from './components/DeviceSyncModal';
 import { Toast } from './components/Toast';
 import { MobileBottomNav } from './components/MobileBottomNav';
+import { TodayRenalGlance } from './components/TodayRenalGlance';
+import { SosEmergencyModal } from './components/SosEmergencyModal';
+import { WhatsAppCheckInModal } from './components/WhatsAppCheckInModal';
 
 import {
   getCurrentUser,
@@ -110,6 +117,8 @@ export default function App() {
     }
   });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isSosOpen, setIsSosOpen] = useState(false);
+  const [isWhatsAppCheckInOpen, setIsWhatsAppCheckInOpen] = useState(false);
   const [activeAlert, setActiveAlert] = useState(null);
   const [toast, setToast] = useState(null);
   const [syncStatus, setSyncStatusState] = useState(getSyncStatus);
@@ -162,20 +171,20 @@ export default function App() {
               playAlertSound('love');
             }
             triggerSystemNotification(
-              'Alejandro te ha enviado un mensaje de amor y ánimo 💖',
+              'Alejandro te ha enviado un mensaje de amor y ánimo',
               `"${latest.message}"`,
               `care_note_${latest.id}`,
               { tab: 'dashboard', type: 'care_note', noteId: latest.id }
             );
             showToast({
               type: 'heart',
-              title: 'Mensaje de amor de Alejandro 💖',
+              title: 'Mensaje de amor de Alejandro',
               message: latest.message,
               duration: 9000,
             });
             setActiveAlert({
               type: 'love',
-              title: 'Alejandro te ha enviado un mensaje de amor y ánimo 💖',
+              title: 'Alejandro te ha enviado un mensaje de amor y ánimo',
               message: `"${latest.message}"`
             });
           }
@@ -242,6 +251,14 @@ export default function App() {
         setIsCloudSyncOpen(false);
         return;
       }
+      if (isSosOpen) {
+        setIsSosOpen(false);
+        return;
+      }
+      if (isWhatsAppCheckInOpen) {
+        setIsWhatsAppCheckInOpen(false);
+        return;
+      }
       if (activeAlert) {
         setActiveAlert(null);
         return;
@@ -253,14 +270,27 @@ export default function App() {
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [isAuthModalOpen, isCloudSyncOpen, activeAlert, activeTab]);
+  }, [isAuthModalOpen, isCloudSyncOpen, isSosOpen, isWhatsAppCheckInOpen, activeAlert, activeTab]);
+
+  // Handle initial PWA shortcut action query params
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const action = params.get('action');
+      if (action === 'quick_water') {
+        handleAddWater(250);
+      } else if (action === 'sos') {
+        setIsSosOpen(true);
+      }
+    } catch {}
+  }, []);
 
   // Push history state so back button closes modals or returns to dashboard
   useEffect(() => {
-    if (isAuthModalOpen || isCloudSyncOpen || activeTab !== 'dashboard') {
+    if (isAuthModalOpen || isCloudSyncOpen || isSosOpen || isWhatsAppCheckInOpen || activeTab !== 'dashboard') {
       window.history.pushState({ appState: true }, '');
     }
-  }, [isAuthModalOpen, isCloudSyncOpen, activeTab]);
+  }, [isAuthModalOpen, isCloudSyncOpen, isSosOpen, isWhatsAppCheckInOpen, activeTab]);
 
   // Apply theme to document and update mobile status bar color
   useEffect(() => {
@@ -271,7 +301,7 @@ export default function App() {
       metaThemeColor.setAttribute('name', 'theme-color');
       document.head.appendChild(metaThemeColor);
     }
-    metaThemeColor.setAttribute('content', theme === 'dark' ? '#0F172A' : '#E0F2FE');
+    metaThemeColor.setAttribute('content', theme === 'dark' ? '#130A14' : '#FCE7F3');
   }, [theme]);
 
   const handleToggleTheme = () => {
@@ -589,7 +619,7 @@ export default function App() {
         scheduleBackgroundAlarm({
           id: `meal_${meal.id}_${todayStr}`,
           delayMs,
-          title: `🍽 Hora de ${meal.name} (${meal.time})`,
+          title: `Hora de ${meal.name} (${meal.time})`,
           body: `Es momento de comer a tus horas exactas. Protege tus riñones con una comida baja en sodio y rica en agua.`,
           tag: `renal_meal_${meal.id}`,
           tab: 'dashboard'
@@ -615,14 +645,14 @@ export default function App() {
             triggerHaptic([350, 120, 350, 120, 500]);
             if (soundEnabled) playAlertSound('loud_meal');
             triggerSystemNotification(
-              `🍽 Hora de ${matchMeal.name} (${matchMeal.time})`,
+              `Hora de ${matchMeal.name} (${matchMeal.time})`,
               `Es momento de comer a tus horas exactas. Recuerda evitar la sal y beber agua.`,
               `renal_meal_${matchMeal.id}`
             );
             setActiveAlert({
               type: 'meal',
               mealId: matchMeal.id,
-              title: `🍽 Hora de ${matchMeal.name} (${matchMeal.time})`,
+              title: `Hora de ${matchMeal.name} (${matchMeal.time})`,
               message: `Tu horario de comida (${matchMeal.time}) ha llegado. Mantén tu regularidad digestiva para proteger tus riñones.`
             });
           }
@@ -640,7 +670,7 @@ export default function App() {
           if (soundEnabled) playAlertSound('loud_alarm');
           
           triggerSystemNotification(
-            '💧 Recordatorio de Hidratación Renal',
+            'Recordatorio de Hidratación Renal',
             '¡Hora de tomar agua! Tus riñones necesitan diluir sales para prevenir cólicos.',
             'renal_water_alarm'
           );
@@ -649,7 +679,7 @@ export default function App() {
           scheduleBackgroundAlarm({
             id: 'next_water_alarm',
             delayMs: intervalMs,
-            title: '💧 Recordatorio de Hidratación Renal',
+            title: 'Recordatorio de Hidratación Renal',
             body: `Han transcurrido ${settings?.reminderIntervalMins || 60} minutos. Bebe un vaso de agua fresca (250 ml) para prevenir cristales.`,
             tag: 'renal_water_alarm',
             tab: 'dashboard'
@@ -657,7 +687,7 @@ export default function App() {
 
           setActiveAlert({
             type: 'water',
-            title: '💧 Recordatorio de Hidratación Renal',
+            title: 'Recordatorio de Hidratación Renal',
             message: `Han transcurrido ${settings?.reminderIntervalMins || 60} minutos. Beber un vaso de agua fresca (250 ml) previene la formación de cristales.`
           });
         }
@@ -674,14 +704,14 @@ export default function App() {
       triggerHaptic([400, 150, 400, 150, 600, 200, 800]);
       if (soundEnabled) playAlertSound('love');
       triggerSystemNotification(
-        'Alejandro te ha enviado un mensaje de amor y ánimo 💖',
-        '¡Hola mi amor! Recuerda tomar agua hoy. Estoy muy orgulloso de ti 💕',
+        'Alejandro te ha enviado un mensaje de amor y ánimo',
+        '¡Hola mi amor! Recuerda tomar agua hoy. Estoy muy orgulloso de ti',
         'care_note_test'
       );
       setActiveAlert({
         type: 'love',
-        title: 'Alejandro te ha enviado un mensaje de amor y ánimo 💖',
-        message: '¡Hola mi amor! Recuerda tomar agüita fresca. Estoy muy orgulloso de ti y de cómo te cuidas cada día 💕'
+        title: 'Alejandro te ha enviado un mensaje de amor y ánimo',
+        message: '¡Hola mi amor! Recuerda tomar agüita fresca. Estoy muy orgulloso de ti y de cómo te cuidas cada día.'
       });
       showToast({
         type: 'heart',
@@ -695,13 +725,13 @@ export default function App() {
       triggerHaptic([350, 120, 350, 120, 500]);
       if (soundEnabled) playAlertSound('loud_meal');
       triggerSystemNotification(
-        '🍽 Hora de Almuerzo (13:00)',
+        'Hora de Almuerzo (13:00)',
         'Es momento de comer a tus horas exactas. Recuerda hidratarte y evitar la sal.',
         'renal_meal_test'
       );
       setActiveAlert({
         type: 'meal',
-        title: '🍽 Alarma de Comida del Día',
+        title: 'Alarma de Comida del Día',
         message: 'Tu horario de comida ha llegado. Mantener horarios fijos mejora el metabolismo y previene acidez y cólicos.'
       });
       showToast({
@@ -716,13 +746,13 @@ export default function App() {
     triggerHaptic([500, 150, 500, 150, 500, 150, 800]);
     if (soundEnabled) playAlertSound('loud_alarm');
     triggerSystemNotification(
-      '💧 Alerta de Hidratación Renal (Fuerte)',
+      'Alerta de Hidratación Renal (Fuerte)',
       '¡Hora de tomar agua! Tus riñones lo necesitan para diluir sales y prevenir cálculos.',
       'renal_water_alarm'
     );
     setActiveAlert({
       type: 'water',
-      title: '💧 Recordatorio de Hidratación Renal',
+      title: 'Recordatorio de Hidratación Renal',
       message: 'Han pasado 60 minutos desde tu último registro. Beber un vaso de agua fresca (250 ml) previene la concentración de oxalato y calcio.'
     });
     showToast({
@@ -733,7 +763,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#E8F4F8] via-[#F0F9FF] to-[#E0F2FE] dark:from-[#090E17] dark:via-[#0F172A] dark:to-[#0B1220] text-slate-800 dark:text-slate-100 flex flex-col font-sans selection:bg-sky-500 selection:text-white transition-colors duration-300">
+    <div className="min-h-screen bg-gradient-to-br from-[#FFF5F7] via-[#FDF2F8] to-[#FCE7F3] dark:from-[#130A14] dark:via-[#1A0E1C] dark:to-[#110712] text-slate-800 dark:text-slate-100 flex flex-col font-sans selection:bg-rosePastel-400 selection:text-white transition-colors duration-300">
       
       {/* Top Navbar */}
       <Navbar
@@ -751,6 +781,7 @@ export default function App() {
         onTriggerManualSync={handleTriggerManualSync}
         theme={theme}
         onToggleTheme={handleToggleTheme}
+        onOpenWhatsAppCheckIn={() => setIsWhatsAppCheckInOpen(true)}
       />
 
       {/* Main Container */}
@@ -764,7 +795,7 @@ export default function App() {
         />
 
         {/* Navigation Tabs (Mobile & Desktop) */}
-        <div className="flex items-center justify-between border-b border-sky-200/80 dark:border-slate-800 pb-2 gap-2">
+        <div className="flex items-center justify-between border-b border-rosePastel-200/80 dark:border-slate-800 pb-2 gap-2">
           <div className="flex space-x-1.5 sm:space-x-2 overflow-x-auto no-scrollbar py-1 scroll-smooth shrink min-w-0">
             
             {/* Mi Día */}
@@ -776,11 +807,11 @@ export default function App() {
               }}
               className={`flex items-center space-x-1.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all active:scale-95 cursor-pointer shrink-0 ${
                 activeTab === 'dashboard'
-                  ? 'bg-sky-600 text-white shadow-md shadow-sky-600/25'
-                  : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 border border-sky-100 dark:border-slate-700'
+                  ? 'bg-rosePastel-500 text-white shadow-md shadow-rosePastel-500/25'
+                  : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 border border-rosePastel-100 dark:border-slate-700'
               }`}
             >
-              <Droplets className={`w-3.5 h-3.5 ${activeTab === 'dashboard' ? 'text-white' : 'text-sky-600 dark:text-sky-400'}`} />
+              <Droplets className={`w-3.5 h-3.5 ${activeTab === 'dashboard' ? 'text-white' : 'text-rosePastel-500'}`} />
               <span>Mi Día</span>
             </button>
 
@@ -793,8 +824,8 @@ export default function App() {
               }}
               className={`flex items-center space-x-1.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all active:scale-95 cursor-pointer shrink-0 ${
                 activeTab === 'symptoms'
-                  ? 'bg-sky-600 text-white shadow-md shadow-sky-600/25'
-                  : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 border border-sky-100 dark:border-slate-700'
+                  ? 'bg-rosePastel-500 text-white shadow-md shadow-rosePastel-500/25'
+                  : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 border border-rosePastel-100 dark:border-slate-700'
               }`}
             >
               <Activity className={`w-3.5 h-3.5 ${activeTab === 'symptoms' ? 'text-white' : 'text-rose-500'}`} />
@@ -810,8 +841,8 @@ export default function App() {
               }}
               className={`flex items-center space-x-1.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all active:scale-95 cursor-pointer shrink-0 ${
                 activeTab === 'stats'
-                  ? 'bg-sky-600 text-white shadow-md shadow-sky-600/25'
-                  : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 border border-sky-100 dark:border-slate-700'
+                  ? 'bg-rosePastel-500 text-white shadow-md shadow-rosePastel-500/25'
+                  : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 border border-rosePastel-100 dark:border-slate-700'
               }`}
             >
               <BarChart3 className={`w-3.5 h-3.5 ${activeTab === 'stats' ? 'text-white' : 'text-indigo-600 dark:text-indigo-400'}`} />
@@ -827,11 +858,11 @@ export default function App() {
               }}
               className={`flex items-center space-x-1.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all active:scale-95 cursor-pointer shrink-0 ${
                 activeTab === 'evaluator'
-                  ? 'bg-sky-600 text-white shadow-md shadow-sky-600/25'
-                  : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 border border-sky-100 dark:border-slate-700'
+                  ? 'bg-rosePastel-500 text-white shadow-md shadow-rosePastel-500/25'
+                  : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 border border-rosePastel-100 dark:border-slate-700'
               }`}
             >
-              <ChefHat className={`w-3.5 h-3.5 ${activeTab === 'evaluator' ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'}`} />
+              <ChefHat className={`w-3.5 h-3.5 ${activeTab === 'evaluator' ? 'text-white' : 'text-rosePastel-600 dark:text-rosePastel-400'}`} />
               <span>¿Puedo comer esto?</span>
             </button>
 
@@ -844,8 +875,8 @@ export default function App() {
               }}
               className={`flex items-center space-x-1.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all active:scale-95 cursor-pointer shrink-0 ${
                 activeTab === 'urine'
-                  ? 'bg-sky-600 text-white shadow-md shadow-sky-600/25'
-                  : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 border border-sky-100 dark:border-slate-700'
+                  ? 'bg-rosePastel-500 text-white shadow-md shadow-rosePastel-500/25'
+                  : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 border border-rosePastel-100 dark:border-slate-700'
               }`}
             >
               <Eye className={`w-3.5 h-3.5 ${activeTab === 'urine' ? 'text-white' : 'text-amber-500'}`} />
@@ -861,8 +892,8 @@ export default function App() {
               }}
               className={`flex items-center space-x-1.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all active:scale-95 cursor-pointer shrink-0 ${
                 activeTab === 'food'
-                  ? 'bg-sky-600 text-white shadow-md shadow-sky-600/25'
-                  : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 border border-sky-100 dark:border-slate-700'
+                  ? 'bg-rosePastel-500 text-white shadow-md shadow-rosePastel-500/25'
+                  : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 border border-rosePastel-100 dark:border-slate-700'
               }`}
             >
               <Apple className={`w-3.5 h-3.5 ${activeTab === 'food' ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'}`} />
@@ -878,8 +909,8 @@ export default function App() {
               }}
               className={`flex items-center space-x-1.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all active:scale-95 cursor-pointer shrink-0 ${
                 activeTab === 'sleep'
-                  ? 'bg-sky-600 text-white shadow-md shadow-sky-600/25'
-                  : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 border border-sky-100 dark:border-slate-700'
+                  ? 'bg-rosePastel-500 text-white shadow-md shadow-rosePastel-500/25'
+                  : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 border border-rosePastel-100 dark:border-slate-700'
               }`}
             >
               <Moon className={`w-3.5 h-3.5 ${activeTab === 'sleep' ? 'text-white' : 'text-indigo-600 dark:text-indigo-400'}`} />
@@ -896,42 +927,42 @@ export default function App() {
                 }}
                 className={`flex items-center space-x-1.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all active:scale-95 cursor-pointer shrink-0 ${
                   activeTab === 'admin'
-                    ? 'bg-amber-500 text-white shadow-md shadow-amber-500/25'
-                    : 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/50 border border-amber-200 dark:border-amber-800'
+                    ? 'bg-rosePastel-500 text-white shadow-md shadow-rosePastel-500/25'
+                    : 'bg-rosePastel-50 dark:bg-rosePastel-950/40 text-rosePastel-700 dark:text-rosePastel-300 hover:bg-rosePastel-100 border border-rosePastel-200 dark:border-rosePastel-800'
                 }`}
               >
-                <SlidersHorizontal className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                <SlidersHorizontal className="w-3.5 h-3.5 text-rosePastel-600 dark:text-rosePastel-400" />
                 <span>Panel Cuidador</span>
               </button>
             )}
           </div>
 
-          {/* Quick Alarm & Push Test Buttons */}
+          {/* Quick Alarm & Push Test Buttons (Zero Emojis, Pure Lucide Icons) */}
           <div className="flex items-center space-x-1 shrink-0">
             <button
               type="button"
               onClick={() => handleTriggerSimulatedWaterAlert('water')}
-              title="Probar alarma fuerte de agua y vibración en pantalla de bloqueo"
-              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-slate-700 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-slate-700 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+              title="Probar alarma de agua y vibración"
+              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-rosePastel-50 dark:hover:bg-slate-700 text-rosePastel-600 dark:text-rosePastel-300 border border-rosePastel-200 dark:border-slate-700 text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
             >
-              <Bell className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 animate-bounce" />
-              <span className="hidden sm:inline">Alarma Fuerte</span>
+              <Bell className="w-3.5 h-3.5 text-rosePastel-500 animate-bounce" />
+              <span className="hidden sm:inline">Alarma</span>
             </button>
             <button
               type="button"
               onClick={() => handleTriggerSimulatedWaterAlert('meal')}
-              title="Probar campana de comida del día"
-              className="p-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-amber-600 border border-amber-200 dark:border-amber-900/50 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+              title="Probar alarma de comida del día"
+              className="p-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-amber-600 border border-amber-200 dark:border-amber-900/50 text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
             >
-              <span className="text-xs" title="Probar alarma de comida">🍽</span>
+              <Utensils className="w-3.5 h-3.5 text-amber-600" />
             </button>
             <button
               type="button"
               onClick={() => handleTriggerSimulatedWaterAlert('love')}
-              title="Probar notificación en pantalla de bloqueo de mensaje de Alejandro"
-              className="p-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-500 border border-rose-200 dark:border-rose-900/50 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+              title="Probar mensaje de Alejandro"
+              className="p-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-rosePastel-50 dark:hover:bg-rosePastel-950/40 text-rosePastel-500 border border-rosePastel-200 dark:border-rosePastel-900/50 text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
             >
-              <span className="text-xs" title="Probar mensaje de Alejandro">💖</span>
+              <Heart className="w-3.5 h-3.5 text-rosePastel-500 fill-rosePastel-500/25" />
             </button>
           </div>
         </div>
@@ -941,6 +972,17 @@ export default function App() {
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
               
+              {/* Daily Clinical Glance Widget */}
+              <TodayRenalGlance
+                targetWaterMl={settings.targetWaterMl}
+                waterLogs={waterLogs}
+                urineLogs={urineLogs}
+                symptomLogs={symptomLogs}
+                onOpenSos={() => setIsSosOpen(true)}
+                onOpenWhatsAppCheckIn={() => setIsWhatsAppCheckInOpen(true)}
+                onNavigateTab={(tab) => setActiveTab(tab)}
+              />
+
               {/* Streak Tracker & Reward from Alejandro */}
               <StreakTracker 
                 streakData={streakData} 
@@ -1058,15 +1100,15 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-sky-100 dark:border-slate-800 bg-white/70 dark:bg-slate-900/80 backdrop-blur-md py-6 text-center text-xs text-slate-500 dark:text-slate-400 transition-colors">
+      <footer className="mt-auto border-t border-rosePastel-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/80 backdrop-blur-md py-6 text-center text-xs text-slate-500 dark:text-slate-400 transition-colors">
         <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center space-x-2">
-            <span className="w-2 h-2 rounded-full bg-sky-500"></span>
+            <span className="w-2 h-2 rounded-full bg-rosePastel-500"></span>
             <span className="font-semibold text-slate-700 dark:text-slate-200">
-              BreyHabitos v2.7 • Modo Claro/Oscuro • Alarma en Segundo Plano
+              BreyHabitos • Salud Renal & Cuidado con Amor
             </span>
           </div>
-          <span className="text-slate-500 dark:text-slate-400 font-medium">100% PWA • Sincronización Nube • Gráficas Clínicas</span>
+          <span className="text-slate-500 dark:text-slate-400 font-medium">100% PWA • Sincronización en la Nube • Seguimiento Clínico</span>
         </div>
       </footer>
 
@@ -1079,6 +1121,25 @@ export default function App() {
         setActiveTab={setActiveTab}
         onQuickAddWater={handleAddWater}
         isAdmin={currentUser?.role === 'admin'}
+        onOpenSos={() => setIsSosOpen(true)}
+        onOpenWhatsAppCheckIn={() => setIsWhatsAppCheckInOpen(true)}
+      />
+
+      {/* Emergency SOS Modal */}
+      <SosEmergencyModal
+        isOpen={isSosOpen}
+        onClose={() => setIsSosOpen(false)}
+        caretakerPhone={settings?.caretakerPhone || ''}
+      />
+
+      {/* WhatsApp Quick Check-in Modal */}
+      <WhatsAppCheckInModal
+        isOpen={isWhatsAppCheckInOpen}
+        onClose={() => setIsWhatsAppCheckInOpen(false)}
+        targetWaterMl={settings.targetWaterMl}
+        waterLogs={waterLogs}
+        symptomLogs={symptomLogs}
+        defaultPhone={settings?.caretakerPhone || ''}
       />
 
       {/* Auth Modal */}

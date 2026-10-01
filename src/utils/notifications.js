@@ -31,26 +31,26 @@ export const triggerSystemNotification = async (title, body, tag = 'breyhabitos_
   }
 
   let actions = [
-    { action: 'open_app', title: '📲 Abrir BreyHabitos' }
+    { action: 'open_app', title: 'Abrir BreyHabitos' }
   ];
   let vibrate = [500, 150, 500, 150, 500, 150, 800];
 
   if (tag.startsWith('care_note') || tag.startsWith('love')) {
     vibrate = [400, 150, 400, 150, 600, 200, 800];
     actions = [
-      { action: 'open_love', title: '💖 Leer con Amor' }
+      { action: 'open_love', title: 'Leer Mensaje con Amor' }
     ];
   } else if (tag.startsWith('renal_meal')) {
     vibrate = [350, 120, 350, 120, 500];
     actions = [
-      { action: 'open_meal', title: '🍽 Ver Comida' },
-      { action: 'snooze_15', title: '⏱ Posponer 15m' }
+      { action: 'open_meal', title: 'Ver Comida' },
+      { action: 'snooze_15', title: 'Posponer 15 min' }
     ];
   } else if (tag.startsWith('renal_water') || tag.startsWith('water')) {
     vibrate = [500, 150, 500, 150, 500, 150, 800];
     actions = [
-      { action: 'drink_250', title: '💧 Tomé 250 ml' },
-      { action: 'snooze_15', title: '⏱ Posponer 15m' }
+      { action: 'drink_250', title: 'Tomé 250 ml' },
+      { action: 'snooze_15', title: 'Posponer 15 min' }
     ];
   }
 

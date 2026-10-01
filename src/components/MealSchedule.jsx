@@ -207,7 +207,7 @@ export const MealSchedule = ({
                               ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
                               : 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800'
                           }`}>
-                            {log.evaluation.status === 'safe' ? '🟢 Saludable' : log.evaluation.status === 'moderate' ? '🟡 Moderado' : '🔴 Cuidado'} • {log.evaluation.score || 85} pts
+                            {log.evaluation.status === 'safe' ? 'Saludable' : log.evaluation.status === 'moderate' ? 'Moderado' : 'Cuidado'} • {log.evaluation.score || 85} pts
                           </span>
                         )}
                       </div>

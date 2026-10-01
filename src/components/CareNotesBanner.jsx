@@ -113,19 +113,19 @@ export const CareNotesBanner = ({
                 <div className="flex items-center space-x-1.5">
                   <button
                     type="button"
-                    onClick={() => handleReact('❤️', 'Leído con amor')}
-                    className="flex items-center space-x-1 px-2.5 py-1 rounded-xl bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200/80 dark:border-rose-900/60 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+                    onClick={() => handleReact('love', 'Leído con amor')}
+                    className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-rosePastel-50 dark:hover:bg-rosePastel-950/40 text-rosePastel-600 dark:text-rosePastel-400 border border-rosePastel-200/80 dark:border-rosePastel-900/60 text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
                   >
-                    <span>❤️</span>
+                    <Heart className="w-3.5 h-3.5 fill-rosePastel-500 text-rosePastel-500" />
                     <span className="hidden sm:inline">¡Leído con amor!</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => handleReact('💧', 'Tomando agüita')}
-                    className="flex items-center space-x-1 px-2.5 py-1 rounded-xl bg-white dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-sky-950/40 text-sky-600 dark:text-sky-400 border border-sky-200/80 dark:border-sky-900/60 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+                    onClick={() => handleReact('water', 'Tomando agua')}
+                    className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-sky-950/40 text-sky-600 dark:text-sky-400 border border-sky-200/80 dark:border-sky-900/60 text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
                   >
-                    <span>💧</span>
+                    <Droplets className="w-3.5 h-3.5 fill-sky-500 text-sky-500" />
                     <span className="hidden sm:inline">¡Tomando agua!</span>
                   </button>
 
@@ -140,8 +140,8 @@ export const CareNotesBanner = ({
                 /* Admin view of reactions */
                 <div className="flex items-center space-x-1.5 text-xs text-slate-500 dark:text-slate-400">
                   {latestNote.reactions && latestNote.reactions.length > 0 ? (
-                    <div className="flex items-center space-x-1 bg-rose-50 dark:bg-rose-950/50 px-2 py-0.5 rounded-lg border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 font-bold text-[11px]">
-                      <span>{latestNote.reactions[latestNote.reactions.length - 1].emoji}</span>
+                    <div className="flex items-center space-x-1 bg-rosePastel-50 dark:bg-rosePastel-950/50 px-2 py-0.5 rounded-lg border border-rosePastel-200 dark:border-rosePastel-900/60 text-rosePastel-700 dark:text-rosePastel-300 font-bold text-[11px]">
+                      <Heart className="w-3 h-3 fill-rosePastel-500 text-rosePastel-500" />
                       <span>Brey: {latestNote.reactions[latestNote.reactions.length - 1].label}</span>
                     </div>
                   ) : (

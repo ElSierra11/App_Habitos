@@ -475,11 +475,11 @@ export const AdminPanel = ({
             </label>
             <div className="flex flex-wrap gap-2">
               {[
-                { id: 'love', label: '💖 Amor y Cariño' },
-                { id: 'motivation', label: '⚡ Motivación y Fuerza' },
-                { id: 'water', label: '💧 Recordatorio de Agua' },
-                { id: 'cheer', label: '🌟 Orgulloso de ti' },
-                { id: 'food', label: '🥗 Cuidado con la Comida' },
+                { id: 'love', label: 'Amor y Cariño' },
+                { id: 'motivation', label: 'Motivación y Fuerza' },
+                { id: 'water', label: 'Recordatorio de Agua' },
+                { id: 'cheer', label: 'Orgulloso de ti' },
+                { id: 'food', label: 'Cuidado con la Comida' },
               ].map(cat => (
                 <button
                   key={cat.id}

@@ -4,9 +4,29 @@
   "description": "Control de hábitos, hidratación y nutrición para la recuperación y prevención de cálculos renales.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F0F9FF",
-  "theme_color": "#E0F2FE",
+  "background_color": "#FFF5F7",
+  "theme_color": "#FCE7F3",
   "orientation": "portrait",
+  "shortcuts": [
+    {
+      "name": "Tomar Agua (250 ml)",
+      "short_name": "Agua 250ml",
+      "description": "Registrar toma de 250 ml de agua fresca",
+      "url": "/?action=quick_water"
+    },
+    {
+      "name": "Registrar Molestia / Síntoma",
+      "short_name": "Síntomas",
+      "description": "Reportar nivel de dolor o molestia renal",
+      "url": "/?tab=symptoms"
+    },
+    {
+      "name": "Ficha SOS Cólico",
+      "short_name": "SOS Cólico",
+      "description": "Llamada urgente y pautas de emergencia",
+      "url": "/?action=sos"
+    }
+  ],
   "icons": [
     {
       "src": "/pwa-192x192.png",

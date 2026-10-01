@@ -75,10 +75,10 @@ export const ReminderAlertModal = ({ alert, onClose, onAcknowledge }) => {
             <button
               type="button"
               onClick={handleClose}
-              className="flex-1 flex items-center justify-center space-x-1.5 py-3 rounded-xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 hover:from-rose-600 hover:to-pink-600 text-white text-xs font-bold shadow-lg shadow-rose-500/25 active:scale-95 transition-all cursor-pointer ring-2 ring-rose-300 dark:ring-rose-800"
+              className="flex-1 flex items-center justify-center space-x-1.5 py-3 rounded-xl bg-gradient-to-r from-rosePastel-500 to-blush-500 hover:from-rosePastel-600 hover:to-blush-600 text-white text-xs font-bold shadow-lg shadow-rosePastel-500/25 active:scale-95 transition-all cursor-pointer ring-2 ring-rosePastel-300 dark:ring-rosePastel-800"
             >
               <Heart className="w-4 h-4 fill-white/30 animate-pulse" />
-              <span>💖 Recibido con Amor</span>
+              <span>Recibido con Amor</span>
             </button>
           ) : (
             <button
