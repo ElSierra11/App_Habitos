@@ -130,6 +130,14 @@ export default function App() {
       return [];
     }
   });
+  const [unreadNotifCount, setUnreadNotifCount] = useState(() => {
+    try {
+      const raw = localStorage.getItem('breyhabitos_notification_history_v1');
+      return raw ? JSON.parse(raw).length : 0;
+    } catch {
+      return 0;
+    }
+  });
 
   const addNotificationToHistory = ({ type, title, message }) => {
     const item = {
@@ -147,6 +155,7 @@ export default function App() {
       } catch {}
       return updated;
     });
+    setUnreadNotifCount(prev => prev + 1);
   };
 
   const [activeAlert, setActiveAlert] = useState(null);
@@ -945,8 +954,11 @@ export default function App() {
         theme={theme}
         onToggleTheme={handleToggleTheme}
         onOpenWhatsAppCheckIn={() => setIsWhatsAppCheckInOpen(true)}
-        onOpenNotificationCenter={() => setIsNotifCenterOpen(true)}
-        unreadNotificationsCount={notificationHistory.length}
+        onOpenNotificationCenter={() => {
+          setIsNotifCenterOpen(true);
+          setUnreadNotifCount(0);
+        }}
+        unreadNotificationsCount={unreadNotifCount}
         onOpenIosGuide={() => setIsIosGuideOpen(true)}
       />
 
@@ -1297,7 +1309,10 @@ export default function App() {
         isAdmin={currentUser?.role === 'admin'}
         onOpenSos={() => setIsSosOpen(true)}
         onOpenWhatsAppCheckIn={() => setIsWhatsAppCheckInOpen(true)}
-        onOpenNotificationCenter={() => setIsNotifCenterOpen(true)}
+        onOpenNotificationCenter={() => {
+          setIsNotifCenterOpen(true);
+          setUnreadNotifCount(0);
+        }}
       />
 
       {/* Emergency SOS Modal */}
@@ -1363,7 +1378,7 @@ export default function App() {
           } catch {}
         }}
         settings={settings}
-        onUpdateSettings={handleUpdateSettings}
+        onUpdateSettings={handleSaveSettings}
         onOpenIosGuide={() => {
           setIsNotifCenterOpen(false);
           setIsIosGuideOpen(true);

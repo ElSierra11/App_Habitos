@@ -8,7 +8,7 @@ import {
   getSymptomLogs,
   safeStorage
 } from '../storage';
-import { URINE_LEVELS } from '../../components/UrineColorChecker';
+import { URINE_LEVELS } from '../urineConstants';
 
 describe('Symptom and Urine Clinical Tracking', () => {
   beforeEach(() => {

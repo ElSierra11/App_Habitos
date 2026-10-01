@@ -7,54 +7,8 @@ import {
   Info
 } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
+import { URINE_LEVELS } from '../utils/urineConstants';
 
-export const URINE_LEVELS = [
-  {
-    level: 1,
-    colorHex: '#FEF9C3',
-    borderColor: '#FEF08A',
-    label: 'Óptima (Pálida)',
-    status: 'safe',
-    diagnosis: 'Excelente dilución urinaria. Los cristales de oxalato y calcio no pueden agruparse.',
-    action: 'Mantén este ritmo de ingesta hídrica.',
-  },
-  {
-    level: 2,
-    colorHex: '#FDE047',
-    borderColor: '#FACC15',
-    label: 'Buena (Paja suave)',
-    status: 'safe',
-    diagnosis: 'Equilibrio adecuado. Riñones filtrando con fluidez normal.',
-    action: 'Sigue bebiendo agua con regularidad cada hora.',
-  },
-  {
-    level: 3,
-    colorHex: '#FACC15',
-    borderColor: '#EAB308',
-    label: 'Aceptable (Dorado)',
-    status: 'moderate',
-    diagnosis: 'Concentración al límite. La densidad de la orina está aumentando.',
-    action: 'Toma 1 vaso de agua (250 ml) fresca ahora mismo.',
-  },
-  {
-    level: 4,
-    colorHex: '#EAB308',
-    borderColor: '#CA8A04',
-    label: 'Concentrada (Ámbar)',
-    status: 'warning',
-    diagnosis: 'Deshidratación renal incipiente. Riesgo moderado de sobresaturación.',
-    action: 'Bebe de 1 a 2 vasos de agua (350-500 ml) de inmediato.',
-  },
-  {
-    level: 5,
-    colorHex: '#B45309',
-    borderColor: '#92400E',
-    label: 'Crítica (Marrón té)',
-    status: 'danger',
-    diagnosis: 'Alerta clínica: Orina sumamente concentrada. Alta propensión a cristales o cólico.',
-    action: 'Urgente: Bebe 500 ml de agua fresca con unas gotas de limón.',
-  },
-];
 
 export const UrineColorChecker = ({ 
   urineLogs = [], 
