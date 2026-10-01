@@ -154,6 +154,37 @@ export default function App() {
     return cleanup;
   }, [cloudConfig]);
 
+  // Handle mobile / browser back button navigation gracefully
+  useEffect(() => {
+    const handlePopState = () => {
+      if (isAuthModalOpen) {
+        setIsAuthModalOpen(false);
+        return;
+      }
+      if (isCloudSyncOpen) {
+        setIsCloudSyncOpen(false);
+        return;
+      }
+      if (activeAlert) {
+        setActiveAlert(null);
+        return;
+      }
+      if (activeTab !== 'dashboard') {
+        setActiveTab('dashboard');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isAuthModalOpen, isCloudSyncOpen, activeAlert, activeTab]);
+
+  // Push history state so back button closes modals or returns to dashboard
+  useEffect(() => {
+    if (isAuthModalOpen || isCloudSyncOpen || activeTab !== 'dashboard') {
+      window.history.pushState({ appState: true }, '');
+    }
+  }, [isAuthModalOpen, isCloudSyncOpen, activeTab]);
+
   // Apply theme to document and update mobile status bar color
   useEffect(() => {
     saveStoredTheme(theme);
@@ -222,6 +253,7 @@ export default function App() {
   const handleLogout = () => {
     setCurrentUser(null);
     setCurrentUserState(null);
+    setActiveTab('dashboard');
     setIsAuthModalOpen(true);
   };
 

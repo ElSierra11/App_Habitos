@@ -109,7 +109,11 @@ export const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
               className="w-14 h-14 rounded-2xl shadow-md shadow-sky-500/20 ring-4 ring-sky-100 dark:ring-slate-800 object-contain mx-auto"
             />
             <div className="absolute -bottom-1 -right-1 p-1 bg-white dark:bg-slate-800 rounded-full shadow-sm border border-sky-100 dark:border-slate-700">
-              {role === 'admin' ? <ShieldCheck className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /> : <HeartHandshake className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />}
+              {email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase() ? (
+                <ShieldCheck className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              ) : (
+                <HeartHandshake className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+              )}
             </div>
           </div>
           <h2 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
