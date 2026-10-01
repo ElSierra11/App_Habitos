@@ -495,8 +495,8 @@ export default function App() {
         <CareNotesBanner careNotes={careNotes} />
 
         {/* Navigation Tabs (Mobile & Desktop) */}
-        <div className="flex items-center justify-between border-b border-sky-200/80 dark:border-slate-800 pb-3 overflow-x-auto gap-2">
-          <div className="flex space-x-1 sm:space-x-1.5 shrink-0">
+        <div className="flex items-center justify-between border-b border-sky-200/80 dark:border-slate-800 pb-2 gap-2">
+          <div className="flex space-x-1.5 sm:space-x-2 overflow-x-auto no-scrollbar py-1 scroll-smooth shrink min-w-0">
             
             {/* Mi Día */}
             <button

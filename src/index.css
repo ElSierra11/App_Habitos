@@ -237,3 +237,12 @@
   box-shadow: 0 0 12px -2px rgba(245, 158, 11, 0.4);
 }
 
+/* Hide scrollbar utility for clean mobile scrolling */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+

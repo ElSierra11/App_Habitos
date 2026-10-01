@@ -20,7 +20,9 @@ export const MobileBottomNav = ({
     { id: 'dashboard', label: 'Inicio', icon: Droplets },
     { id: 'symptoms', label: 'Síntomas', icon: Activity },
     { id: 'quick_water', label: '+250ml', isFab: true },
-    { id: 'urine', label: 'Orina', icon: Eye },
+    ...(isAdmin 
+      ? [{ id: 'admin', label: 'Cuidador', icon: SlidersHorizontal }] 
+      : [{ id: 'urine', label: 'Orina', icon: Eye }]),
     { id: 'stats', label: 'Evolución', icon: BarChart3 },
   ];
 

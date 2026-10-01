@@ -11,7 +11,7 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react';
-import { getStoredUsers, saveUser } from '../utils/storage';
+import { getStoredUsers, saveUser, ADMIN_EMAIL } from '../utils/storage';
 import { triggerHaptic } from '../utils/haptics';
 
 export const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
@@ -19,7 +19,6 @@ export const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState('patient'); // 'patient' | 'admin'
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -33,10 +32,11 @@ export const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
     setSuccess('');
 
     const users = getStoredUsers();
+    const cleanEmail = email.trim().toLowerCase();
 
     if (mode === 'login') {
       const user = users.find(
-        (u) => u.email.toLowerCase() === email.trim().toLowerCase() && u.password === password
+        (u) => u.email.toLowerCase() === cleanEmail && u.password === password
       );
 
       if (!user) {
@@ -57,13 +57,16 @@ export const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
         return;
       }
 
+      const isTargetAdmin = cleanEmail === ADMIN_EMAIL.toLowerCase();
+      const assignedRole = isTargetAdmin ? 'admin' : 'patient';
+
       const newUser = {
         id: 'user_' + Date.now(),
-        email: email.trim().toLowerCase(),
+        email: cleanEmail,
         password,
         name: name.trim(),
-        role,
-        targetWaterMl: role === 'patient' ? 3000 : undefined,
+        role: assignedRole,
+        targetWaterMl: assignedRole === 'patient' ? 3000 : undefined,
         createdAt: new Date().toISOString(),
       };
 
@@ -224,39 +227,7 @@ export const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
             </div>
           </div>
 
-          {mode === 'register' && (
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Tipo de Cuenta</label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setRole('patient')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all ${
-                    role === 'patient'
-                      ? 'bg-sky-50 dark:bg-sky-950/60 border-sky-400 dark:border-sky-600 text-sky-900 dark:text-sky-200 shadow-sm'
-                      : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300'
-                  }`}
-                >
-                  <HeartHandshake className="w-5 h-5 mb-1 text-sky-500" />
-                  <span className="text-xs font-bold">Paciente</span>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Recuperación renal</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole('admin')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all ${
-                    role === 'admin'
-                      ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-400 dark:border-amber-600 text-amber-900 dark:text-amber-200 shadow-sm'
-                      : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300'
-                  }`}
-                >
-                  <ShieldCheck className="w-5 h-5 mb-1 text-amber-500" />
-                  <span className="text-xs font-bold">Cuidador / Admin</span>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Gestión y control</span>
-                </button>
-              </div>
-            </div>
-          )}
+
 
           <button
             type="submit"

@@ -62,13 +62,16 @@ export const safeStorage = {
 };
 
 
+// Exclusive admin account email
+export const ADMIN_EMAIL = 'alejosierra656@gmail.com';
+
 // Seed initial users
 const INITIAL_USERS = [
   {
     id: 'user_admin_1',
-    email: 'admin@salud.com',
+    email: ADMIN_EMAIL,
     password: 'admin123',
-    name: 'Alejandro (Cuidador)',
+    name: 'Alejandro Sierra (Cuidador)',
     role: 'admin',
     createdAt: new Date().toISOString(),
   },
@@ -290,11 +293,35 @@ const getInitialMealLogs = () => {
 // Storage helper functions
 export const getStoredUsers = () => {
   const data = safeStorage.getItem(STORAGE_KEYS.USERS);
+  let users = [];
   if (!data) {
-    safeStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(INITIAL_USERS));
-    return INITIAL_USERS;
+    users = [...INITIAL_USERS];
+    safeStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+  } else {
+    try {
+      users = JSON.parse(data);
+    } catch {
+      users = [...INITIAL_USERS];
+    }
   }
-  return JSON.parse(data);
+
+  // Sanitize: ensure ONLY ADMIN_EMAIL has 'admin', all others 'patient'
+  let modified = false;
+  users = users.map((u) => {
+    const isTargetAdmin = u.email && u.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    const correctRole = isTargetAdmin ? 'admin' : 'patient';
+    if (u.role !== correctRole) {
+      modified = true;
+      return { ...u, role: correctRole };
+    }
+    return u;
+  });
+
+  if (modified) {
+    safeStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+  }
+
+  return users;
 };
 
 export const saveUser = (user) => {
@@ -303,18 +330,32 @@ export const saveUser = (user) => {
   if (exists) {
     throw new Error('El correo electrónico ya se encuentra registrado');
   }
-  users.push(user);
+  // Enforce role: only ADMIN_EMAIL can be admin
+  const isTargetAdmin = user.email && user.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  const sanitizedUser = {
+    ...user,
+    role: isTargetAdmin ? 'admin' : 'patient',
+  };
+  users.push(sanitizedUser);
   safeStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-  return user;
+  return sanitizedUser;
 };
 
 export const getCurrentUser = () => {
   const data = safeStorage.getItem(STORAGE_KEYS.CURRENT_USER);
   if (!data) {
-    // Default to patient logged in for immediate friendly UX, or null
     return INITIAL_USERS[1];
   }
-  return JSON.parse(data);
+  try {
+    const parsed = JSON.parse(data);
+    const isTargetAdmin = parsed.email && parsed.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    return {
+      ...parsed,
+      role: isTargetAdmin ? 'admin' : 'patient',
+    };
+  } catch {
+    return INITIAL_USERS[1];
+  }
 };
 
 export const setCurrentUser = (user) => {

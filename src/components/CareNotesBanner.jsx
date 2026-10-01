@@ -7,14 +7,14 @@ export const CareNotesBanner = ({ careNotes = [] }) => {
   const latestNote = careNotes[0];
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-r from-sky-50 via-white to-cyan-50 dark:from-slate-900/90 dark:via-slate-900 dark:to-cyan-950/40 border border-sky-200/90 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-md shadow-sky-500/5 care-shimmer-border transition-all">
+    <div className="relative overflow-hidden bg-gradient-to-r from-sky-50 via-white to-cyan-50 dark:from-slate-900/90 dark:via-slate-900 dark:to-cyan-950/40 border border-sky-200/90 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-md shadow-sky-500/5 care-shimmer-border transition-all">
       
       {/* Decorative warm aura */}
       <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-rose-200/20 to-sky-200/20 dark:from-rose-500/10 dark:to-sky-500/10 rounded-full blur-2xl pointer-events-none" />
 
-      <div className="flex items-start space-x-3.5 relative z-10">
-        <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-sky-500 to-rose-400 text-white flex items-center justify-center shrink-0 shadow-md shadow-sky-500/20 ring-4 ring-sky-100/80 dark:ring-sky-900/40">
-          <HeartHandshake className="w-5 h-5" />
+      <div className="flex items-start space-x-3 sm:space-x-3.5 relative z-10">
+        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-sky-500 to-rose-400 text-white flex items-center justify-center shrink-0 shadow-md shadow-sky-500/20 ring-2 sm:ring-4 ring-sky-100/80 dark:ring-sky-900/40">
+          <HeartHandshake className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
         <div className="flex-1">
           <div className="flex items-center space-x-2 mb-1.5">
