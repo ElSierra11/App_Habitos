@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Droplets, Utensils, Moon, X, Check } from 'lucide-react';
+import { Bell, Droplets, Utensils, Moon, X, Check, Heart } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 
 export const ReminderAlertModal = ({ alert, onClose, onAcknowledge }) => {
@@ -13,6 +13,8 @@ export const ReminderAlertModal = ({ alert, onClose, onAcknowledge }) => {
         return <Utensils className="w-8 h-8 text-amber-600" />;
       case 'sleep':
         return <Moon className="w-8 h-8 text-indigo-600" />;
+      case 'love':
+        return <Heart className="w-8 h-8 text-rose-500 fill-rose-500/30 animate-pulse" />;
       default:
         return <Bell className="w-8 h-8 text-sky-600" />;
     }
@@ -69,18 +71,29 @@ export const ReminderAlertModal = ({ alert, onClose, onAcknowledge }) => {
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={handleClose}
-            className={`flex-1 flex items-center justify-center space-x-1.5 py-3 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer ${
-              alert.type === 'water'
-                ? 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
-                : 'bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600 text-white shadow-md shadow-sky-500/20'
-            }`}
-          >
-            <Check className="w-3.5 h-3.5" />
-            <span>Entendido</span>
-          </button>
+          {alert.type === 'love' ? (
+            <button
+              type="button"
+              onClick={handleClose}
+              className="flex-1 flex items-center justify-center space-x-1.5 py-3 rounded-xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 hover:from-rose-600 hover:to-pink-600 text-white text-xs font-bold shadow-lg shadow-rose-500/25 active:scale-95 transition-all cursor-pointer ring-2 ring-rose-300 dark:ring-rose-800"
+            >
+              <Heart className="w-4 h-4 fill-white/30 animate-pulse" />
+              <span>💖 Recibido con Amor</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleClose}
+              className={`flex-1 flex items-center justify-center space-x-1.5 py-3 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+                alert.type === 'water'
+                  ? 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+                  : 'bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600 text-white shadow-md shadow-sky-500/20'
+              }`}
+            >
+              <Check className="w-3.5 h-3.5" />
+              <span>Entendido</span>
+            </button>
+          )}
         </div>
 
       </div>

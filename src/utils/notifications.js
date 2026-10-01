@@ -30,6 +30,30 @@ export const triggerSystemNotification = async (title, body, tag = 'breyhabitos_
     return false;
   }
 
+  let actions = [
+    { action: 'open_app', title: '📲 Abrir BreyHabitos' }
+  ];
+  let vibrate = [500, 150, 500, 150, 500, 150, 800];
+
+  if (tag.startsWith('care_note') || tag.startsWith('love')) {
+    vibrate = [400, 150, 400, 150, 600, 200, 800];
+    actions = [
+      { action: 'open_love', title: '💖 Leer con Amor' }
+    ];
+  } else if (tag.startsWith('renal_meal')) {
+    vibrate = [350, 120, 350, 120, 500];
+    actions = [
+      { action: 'open_meal', title: '🍽 Ver Comida' },
+      { action: 'snooze_15', title: '⏱ Posponer 15m' }
+    ];
+  } else if (tag.startsWith('renal_water') || tag.startsWith('water')) {
+    vibrate = [500, 150, 500, 150, 500, 150, 800];
+    actions = [
+      { action: 'drink_250', title: '💧 Tomé 250 ml' },
+      { action: 'snooze_15', title: '⏱ Posponer 15m' }
+    ];
+  }
+
   const notificationOptions = {
     body,
     icon: '/pwa-192x192.png',
@@ -37,12 +61,9 @@ export const triggerSystemNotification = async (title, body, tag = 'breyhabitos_
     tag,
     renotify: true,
     requireInteraction: true, // Keep notification visible on lock screen until user interacts
-    vibrate: [500, 150, 500, 150, 500, 150, 800], // Loud medical alert vibration
+    vibrate,
     data: { url: extraData.url || '/', ...extraData },
-    actions: [
-      { action: 'drink_250', title: ' Tomé 250 ml' },
-      { action: 'snooze_15', title: '⏱ Posponer 15m' }
-    ]
+    actions
   };
 
   // 1. Mobile & PWA standard: Try via ServiceWorkerRegistration (Crucial for Android & iOS PWA background)
@@ -115,3 +136,28 @@ export const setupServiceWorkerListener = (onQuickAddWater) => {
     navigator.serviceWorker.removeEventListener('message', handleMessage);
   };
 };
+
+/**
+ * Sends cloud sync configuration to Service Worker so it can poll in the background
+ */
+export const syncConfigToServiceWorker = async (config, lastSeenNoteId) => {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return false;
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const target = navigator.serviceWorker.controller || registration.active;
+    if (target) {
+      target.postMessage({
+        type: 'SET_SYNC_CONFIG',
+        config,
+        lastSeenNoteId
+      });
+      return true;
+    }
+  } catch (err) {
+    console.warn('Error sincronizando config con Service Worker:', err);
+  }
+  return false;
+};
+
+

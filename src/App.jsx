@@ -81,7 +81,8 @@ import {
   requestNotificationPermission, 
   triggerSystemNotification, 
   scheduleBackgroundAlarm, 
-  setupServiceWorkerListener 
+  setupServiceWorkerListener,
+  syncConfigToServiceWorker
 } from './utils/notifications';
 import { triggerHaptic } from './utils/haptics';
 
@@ -114,6 +115,13 @@ export default function App() {
   const [syncStatus, setSyncStatusState] = useState(getSyncStatus);
 
   const lastWaterAlertTimeRef = useRef(Date.now());
+  const lastSeenNoteIdRef = useRef((() => {
+    try {
+      return localStorage.getItem('breyhabitos_last_seen_note_id_v1') || null;
+    } catch {
+      return null;
+    }
+  })());
 
   const showToast = ({ type = 'info', title, message, duration = 3500 }) => {
     setToast({ id: Date.now() + Math.random(), type, title, message, duration });
@@ -126,10 +134,73 @@ export default function App() {
     if (mergedData.mealLogs) setMealLogs(mergedData.mealLogs);
     if (mergedData.sleepLogs) setSleepLogs(mergedData.sleepLogs);
     if (mergedData.foodGuide) setFoodGuide(mergedData.foodGuide);
-    if (mergedData.careNotes) setCareNotes(mergedData.careNotes);
     if (mergedData.urineLogs) setUrineLogs(mergedData.urineLogs);
     if (mergedData.symptomLogs) setSymptomLogs(mergedData.symptomLogs);
+
+    if (mergedData.careNotes) {
+      setCareNotes(mergedData.careNotes);
+
+      // Check for new incoming care note from Alejandro
+      if (mergedData.careNotes.length > 0) {
+        const latest = mergedData.careNotes[0];
+        const prevId = lastSeenNoteIdRef.current;
+
+        if (prevId && latest.id !== prevId) {
+          lastSeenNoteIdRef.current = latest.id;
+          try {
+            localStorage.setItem('breyhabitos_last_seen_note_id_v1', latest.id);
+          } catch {}
+
+          if (cloudConfig) {
+            syncConfigToServiceWorker(cloudConfig, latest.id);
+          }
+
+          // Trigger lock screen notification, vibration, and loud love chime if on recipient device
+          if (currentUser?.role !== 'admin') {
+            triggerHaptic([400, 150, 400, 150, 600, 200, 800]);
+            if (soundEnabled) {
+              playAlertSound('love');
+            }
+            triggerSystemNotification(
+              'Alejandro te ha enviado un mensaje de amor y ánimo 💖',
+              `"${latest.message}"`,
+              `care_note_${latest.id}`,
+              { tab: 'dashboard', type: 'care_note', noteId: latest.id }
+            );
+            showToast({
+              type: 'heart',
+              title: 'Mensaje de amor de Alejandro 💖',
+              message: latest.message,
+              duration: 9000,
+            });
+            setActiveAlert({
+              type: 'love',
+              title: 'Alejandro te ha enviado un mensaje de amor y ánimo 💖',
+              message: `"${latest.message}"`
+            });
+          }
+        } else if (!prevId) {
+          lastSeenNoteIdRef.current = latest.id;
+          try {
+            localStorage.setItem('breyhabitos_last_seen_note_id_v1', latest.id);
+          } catch {}
+        }
+      }
+    }
   };
+
+  // Sync initial note ID and cloud config to Service Worker for background monitoring
+  useEffect(() => {
+    if (!lastSeenNoteIdRef.current && careNotes && careNotes.length > 0) {
+      lastSeenNoteIdRef.current = careNotes[0].id;
+      try {
+        localStorage.setItem('breyhabitos_last_seen_note_id_v1', careNotes[0].id);
+      } catch {}
+    }
+    if (cloudConfig) {
+      syncConfigToServiceWorker(cloudConfig, lastSeenNoteIdRef.current);
+    }
+  }, [cloudConfig, careNotes]);
 
   // Sync status subscriber
   useEffect(() => {
@@ -348,6 +419,15 @@ export default function App() {
   const handleAddCareNote = (message, author, category, important) => {
     const updated = addCareNote(message, author, category, important);
     setCareNotes(updated);
+    if (updated && updated.length > 0) {
+      lastSeenNoteIdRef.current = updated[0].id;
+      try {
+        localStorage.setItem('breyhabitos_last_seen_note_id_v1', updated[0].id);
+      } catch {}
+      if (cloudConfig) {
+        syncConfigToServiceWorker(cloudConfig, updated[0].id);
+      }
+    }
     triggerCloudPush({ careNotes: updated });
     showToast({
       type: 'heart',
@@ -451,7 +531,7 @@ export default function App() {
     }
   }, []);
 
-  // Periodic Cloud Pull (Auto-sync every 30s)
+  // Periodic Cloud Pull (Auto-sync every 12s for rapid cross-device message arrival)
   useEffect(() => {
     if (!cloudConfig?.enabled || cloudConfig?.autoSync === false) return;
 
@@ -470,7 +550,7 @@ export default function App() {
     };
 
     pullRemote();
-    const interval = setInterval(pullRemote, 30000);
+    const interval = setInterval(pullRemote, 12000);
     return () => clearInterval(interval);
   }, [cloudConfig]);
 
@@ -488,6 +568,36 @@ export default function App() {
     return unregister;
   }, [soundEnabled]);
 
+  // Schedule all daily meal alarms in the background Service Worker
+  useEffect(() => {
+    if (!settings?.mealSchedule || !Array.isArray(settings.mealSchedule)) return;
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+
+    settings.mealSchedule.forEach((meal) => {
+      if (!meal.time) return;
+      const [hours, minutes] = meal.time.split(':').map(Number);
+      const mealDate = new Date();
+      mealDate.setHours(hours, minutes, 0, 0);
+
+      const delayMs = mealDate.getTime() - Date.now();
+      const isCompleted = (mealLogs || []).some(
+        l => l.date === todayStr && l.mealId === meal.id && l.completed
+      );
+
+      if (delayMs > 0 && !isCompleted) {
+        scheduleBackgroundAlarm({
+          id: `meal_${meal.id}_${todayStr}`,
+          delayMs,
+          title: `🍽 Hora de ${meal.name} (${meal.time})`,
+          body: `Es momento de comer a tus horas exactas. Protege tus riñones con una comida baja en sodio y rica en agua.`,
+          tag: `renal_meal_${meal.id}`,
+          tab: 'dashboard'
+        });
+      }
+    });
+  }, [settings?.mealSchedule, mealLogs]);
+
   // Periodic reminder simulation / check (Meals + Hydration intervals)
   useEffect(() => {
     const interval = setInterval(() => {
@@ -501,17 +611,18 @@ export default function App() {
         const matchMeal = settings.mealSchedule.find(m => m.time === currentTimeStr);
         if (matchMeal) {
           const alreadyTaken = mealLogs.some(l => l.date === today && l.mealId === matchMeal.id && l.completed);
-          if (!alreadyTaken && !activeAlert) {
-            triggerHaptic([30, 40, 30]);
-            if (soundEnabled) playAlertSound('meal');
+          if (!alreadyTaken && (!activeAlert || activeAlert.mealId !== matchMeal.id)) {
+            triggerHaptic([350, 120, 350, 120, 500]);
+            if (soundEnabled) playAlertSound('loud_meal');
             triggerSystemNotification(
-              `Hora de ${matchMeal.name}`,
+              `🍽 Hora de ${matchMeal.name} (${matchMeal.time})`,
               `Es momento de comer a tus horas exactas. Recuerda evitar la sal y beber agua.`,
-              'renal_meal_alarm'
+              `renal_meal_${matchMeal.id}`
             );
             setActiveAlert({
               type: 'meal',
-              title: `Hora de ${matchMeal.name}`,
+              mealId: matchMeal.id,
+              title: `🍽 Hora de ${matchMeal.name} (${matchMeal.time})`,
               message: `Tu horario de comida (${matchMeal.time}) ha llegado. Mantén tu regularidad digestiva para proteger tus riñones.`
             });
           }
@@ -525,11 +636,11 @@ export default function App() {
 
         if (timeSinceLastAlert >= intervalMs && !activeAlert) {
           lastWaterAlertTimeRef.current = Date.now();
-          triggerHaptic([30, 60, 30, 60]);
-          if (soundEnabled) playAlertSound('alarm');
+          triggerHaptic([500, 150, 500, 150, 500, 150, 800]);
+          if (soundEnabled) playAlertSound('loud_alarm');
           
           triggerSystemNotification(
-            'Recordatorio de Hidratación Renal',
+            '💧 Recordatorio de Hidratación Renal',
             '¡Hora de tomar agua! Tus riñones necesitan diluir sales para prevenir cólicos.',
             'renal_water_alarm'
           );
@@ -538,7 +649,7 @@ export default function App() {
           scheduleBackgroundAlarm({
             id: 'next_water_alarm',
             delayMs: intervalMs,
-            title: 'Recordatorio de Hidratación Renal',
+            title: '💧 Recordatorio de Hidratación Renal',
             body: `Han transcurrido ${settings?.reminderIntervalMins || 60} minutos. Bebe un vaso de agua fresca (250 ml) para prevenir cristales.`,
             tag: 'renal_water_alarm',
             tab: 'dashboard'
@@ -546,30 +657,78 @@ export default function App() {
 
           setActiveAlert({
             type: 'water',
-            title: 'Recordatorio de Hidratación Renal',
+            title: '💧 Recordatorio de Hidratación Renal',
             message: `Han transcurrido ${settings?.reminderIntervalMins || 60} minutos. Beber un vaso de agua fresca (250 ml) previene la formación de cristales.`
           });
         }
       }
 
-    }, 25000); // Check every 25 seconds
+    }, 20000); // Check every 20 seconds
 
     return () => clearInterval(interval);
   }, [settings, mealLogs, soundEnabled, activeAlert]);
 
-  // Trigger manual simulated alert test with sound and lock-screen buttons
-  const handleTriggerSimulatedWaterAlert = () => {
-    triggerHaptic([30, 60, 30, 60]);
-    if (soundEnabled) playAlertSound('alarm');
+  // Trigger manual simulated alert test with loud sound and lock-screen buttons
+  const handleTriggerSimulatedWaterAlert = (type = 'water') => {
+    if (type === 'love') {
+      triggerHaptic([400, 150, 400, 150, 600, 200, 800]);
+      if (soundEnabled) playAlertSound('love');
+      triggerSystemNotification(
+        'Alejandro te ha enviado un mensaje de amor y ánimo 💖',
+        '¡Hola mi amor! Recuerda tomar agua hoy. Estoy muy orgulloso de ti 💕',
+        'care_note_test'
+      );
+      setActiveAlert({
+        type: 'love',
+        title: 'Alejandro te ha enviado un mensaje de amor y ánimo 💖',
+        message: '¡Hola mi amor! Recuerda tomar agüita fresca. Estoy muy orgulloso de ti y de cómo te cuidas cada día 💕'
+      });
+      showToast({
+        type: 'heart',
+        title: 'Prueba de Mensaje con Amor',
+        message: 'Sonido romántico y notificación en pantalla de bloqueo enviada',
+      });
+      return;
+    }
+
+    if (type === 'meal') {
+      triggerHaptic([350, 120, 350, 120, 500]);
+      if (soundEnabled) playAlertSound('loud_meal');
+      triggerSystemNotification(
+        '🍽 Hora de Almuerzo (13:00)',
+        'Es momento de comer a tus horas exactas. Recuerda hidratarte y evitar la sal.',
+        'renal_meal_test'
+      );
+      setActiveAlert({
+        type: 'meal',
+        title: '🍽 Alarma de Comida del Día',
+        message: 'Tu horario de comida ha llegado. Mantener horarios fijos mejora el metabolismo y previene acidez y cólicos.'
+      });
+      showToast({
+        type: 'info',
+        title: 'Alarma de Comida Probada',
+        message: 'Campana sonora y alerta enviadas con éxito',
+      });
+      return;
+    }
+
+    // Default: Loud water alert
+    triggerHaptic([500, 150, 500, 150, 500, 150, 800]);
+    if (soundEnabled) playAlertSound('loud_alarm');
     triggerSystemNotification(
-      'Alerta de Hidratación Renal',
+      '💧 Alerta de Hidratación Renal (Fuerte)',
       '¡Hora de tomar agua! Tus riñones lo necesitan para diluir sales y prevenir cálculos.',
       'renal_water_alarm'
     );
     setActiveAlert({
       type: 'water',
-      title: 'Recordatorio de Hidratación Renal',
+      title: '💧 Recordatorio de Hidratación Renal',
       message: 'Han pasado 60 minutos desde tu último registro. Beber un vaso de agua fresca (250 ml) previene la concentración de oxalato y calcio.'
+    });
+    showToast({
+      type: 'info',
+      title: 'Alarma Sonora de Agua',
+      message: 'Sonido penetrante y vibración máxima ejecutados con éxito',
     });
   };
 
@@ -747,16 +906,34 @@ export default function App() {
             )}
           </div>
 
-          {/* Quick Alarm Test Button */}
-          <button
-            type="button"
-            onClick={handleTriggerSimulatedWaterAlert}
-            title="Lanzar recordatorio de agua en vivo con sonido y vibración"
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-slate-700 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-slate-700 text-xs font-bold shrink-0 transition-all shadow-sm active:scale-95 cursor-pointer"
-          >
-            <Bell className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 animate-bounce" />
-            <span className="hidden sm:inline">Probar Alarma</span>
-          </button>
+          {/* Quick Alarm & Push Test Buttons */}
+          <div className="flex items-center space-x-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => handleTriggerSimulatedWaterAlert('water')}
+              title="Probar alarma fuerte de agua y vibración en pantalla de bloqueo"
+              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-slate-700 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-slate-700 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+            >
+              <Bell className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 animate-bounce" />
+              <span className="hidden sm:inline">Alarma Fuerte</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTriggerSimulatedWaterAlert('meal')}
+              title="Probar campana de comida del día"
+              className="p-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-amber-600 border border-amber-200 dark:border-amber-900/50 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+            >
+              <span className="text-xs" title="Probar alarma de comida">🍽</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTriggerSimulatedWaterAlert('love')}
+              title="Probar notificación en pantalla de bloqueo de mensaje de Alejandro"
+              className="p-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-500 border border-rose-200 dark:border-rose-900/50 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+            >
+              <span className="text-xs" title="Probar mensaje de Alejandro">💖</span>
+            </button>
+          </div>
         </div>
 
         {/* Tab Views with animated transition */}

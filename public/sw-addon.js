@@ -3,9 +3,67 @@
 
 const scheduledTimers = new Map();
 
+let cloudConfig = null;
+let lastSeenNoteId = null;
+let bgSyncInterval = null;
+
+// Background polling for care notes directly from Service Worker
+async function checkBackgroundCareNotes() {
+  if (!cloudConfig || !cloudConfig.enabled || !cloudConfig.supabaseUrl || !cloudConfig.supabaseAnonKey) {
+    return;
+  }
+  try {
+    const cleanUrl = cloudConfig.supabaseUrl.replace(/\/+$/, '');
+    const tableName = cloudConfig.tableName || 'breyhabitos_sync';
+    const roomId = cloudConfig.roomId || 'brey_alejandro_salud';
+
+    const res = await fetch(`${cleanUrl}/rest/v1/${tableName}?room_id=eq.${encodeURIComponent(roomId)}&select=payload,updated_at`, {
+      method: 'GET',
+      headers: {
+        'apikey': cloudConfig.supabaseAnonKey,
+        'Authorization': `Bearer ${cloudConfig.supabaseAnonKey}`,
+      },
+    });
+
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data || data.length === 0 || !data[0].payload) return;
+
+    const notes = data[0].payload.careNotes || [];
+    if (notes.length > 0) {
+      const latest = notes[0];
+      if (lastSeenNoteId && latest.id !== lastSeenNoteId) {
+        lastSeenNoteId = latest.id;
+        showAlarmNotification(
+          'Alejandro te ha enviado un mensaje de amor y ánimo 💖',
+          `"${latest.message}"`,
+          `care_note_${latest.id}`,
+          'dashboard'
+        );
+      } else if (!lastSeenNoteId) {
+        lastSeenNoteId = latest.id;
+      }
+    }
+  } catch (err) {
+    // Network errors in background ignored
+  }
+}
+
 // Listen to messages from the web application
 self.addEventListener('message', (event) => {
   if (!event.data) return;
+
+  // 0. Update Cloud Config for Background Checking
+  if (event.data.type === 'SET_SYNC_CONFIG') {
+    cloudConfig = event.data.config || null;
+    if (event.data.lastSeenNoteId) {
+      lastSeenNoteId = event.data.lastSeenNoteId;
+    }
+    if (!bgSyncInterval && cloudConfig?.enabled) {
+      bgSyncInterval = setInterval(checkBackgroundCareNotes, 20000);
+      checkBackgroundCareNotes();
+    }
+  }
 
   // 1. Schedule a background alarm
   if (event.data.type === 'SCHEDULE_ALARM') {
@@ -41,6 +99,30 @@ self.addEventListener('message', (event) => {
 
 // Display high-priority, sticky notification with sound and vibration
 function showAlarmNotification(title, body, tag = 'renal_water_alarm', tab = 'dashboard') {
+  let actions = [
+    { action: 'open_app', title: '📲 Abrir BreyHabitos' }
+  ];
+  let vibrate = [500, 150, 500, 150, 500, 150, 800];
+
+  if (tag.startsWith('care_note') || tag.startsWith('love')) {
+    vibrate = [400, 150, 400, 150, 600, 200, 800];
+    actions = [
+      { action: 'open_love', title: '💖 Leer con Amor' }
+    ];
+  } else if (tag.startsWith('renal_meal')) {
+    vibrate = [350, 120, 350, 120, 500];
+    actions = [
+      { action: 'open_meal', title: '🍽 Ver Horario de Comida' },
+      { action: 'snooze_15', title: '⏱ Posponer 15m' }
+    ];
+  } else if (tag.startsWith('renal_water') || tag.startsWith('water')) {
+    vibrate = [500, 150, 500, 150, 500, 150, 800];
+    actions = [
+      { action: 'drink_250', title: '💧 Tomé 250 ml' },
+      { action: 'snooze_15', title: '⏱ Posponer 15m' }
+    ];
+  }
+
   const options = {
     body: body || 'Es momento de hidratar tus riñones para diluir sales y prevenir cólicos.',
     icon: '/pwa-192x192.png',
@@ -48,15 +130,12 @@ function showAlarmNotification(title, body, tag = 'renal_water_alarm', tab = 'da
     tag: tag,
     renotify: true,
     requireInteraction: true, // Remains on mobile lock screen until dismissed or acted upon
-    vibrate: [500, 150, 500, 150, 500, 150, 800], // High-intensity medical alert pattern
+    vibrate,
     data: {
       url: `/?tab=${tab}`,
       timestamp: Date.now(),
     },
-    actions: [
-      { action: 'drink_250', title: ' Tomé 250 ml' },
-      { action: 'snooze_15', title: '⏱ Posponer 15m' },
-    ],
+    actions
   };
 
   return self.registration.showNotification(title, options);
