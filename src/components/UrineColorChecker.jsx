@@ -3,12 +3,8 @@ import {
   Eye, 
   Droplets, 
   CheckCircle2, 
-  AlertTriangle, 
-  AlertOctagon, 
-  Clock, 
   Trash2, 
-  Info,
-  Sparkles
+  Info
 } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 

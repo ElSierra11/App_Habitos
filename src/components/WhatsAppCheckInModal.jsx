@@ -5,8 +5,6 @@ import {
   Activity, 
   Send, 
   X, 
-  Check, 
-  Sparkles,
   MessageSquareHeart,
   Phone
 } from 'lucide-react';
@@ -20,16 +18,6 @@ export const WhatsAppCheckInModal = ({
   symptomLogs = [],
   defaultPhone = ''
 }) => {
-  if (!isOpen) return null;
-
-  const today = new Date().toISOString().split('T')[0];
-  const todayWater = waterLogs
-    .filter(l => l.date === today)
-    .reduce((sum, item) => sum + (Number(item.amountMl) || 0), 0);
-  
-  const todaySymptoms = symptomLogs.filter(l => l.date === today);
-  const latestSymptom = todaySymptoms.length > 0 ? todaySymptoms[0] : null;
-
   const [selectedType, setSelectedType] = useState('positive');
   const [customNote, setCustomNote] = useState('');
   const [phone, setPhone] = useState(() => {
@@ -39,6 +27,16 @@ export const WhatsAppCheckInModal = ({
       return defaultPhone || '';
     }
   });
+
+  if (!isOpen) return null;
+
+  const today = new Date().toISOString().split('T')[0];
+  const todayWater = waterLogs
+    .filter(l => l.date === today)
+    .reduce((sum, item) => sum + (Number(item.amountMl) || 0), 0);
+  
+  const todaySymptoms = symptomLogs.filter(l => l.date === today);
+  const latestSymptom = todaySymptoms.length > 0 ? todaySymptoms[0] : null;
 
   const generateMessage = () => {
     const waterText = `${todayWater.toLocaleString()} ml de ${targetWaterMl.toLocaleString()} ml`;

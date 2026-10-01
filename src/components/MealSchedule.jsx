@@ -9,7 +9,6 @@ import {
   Coffee, 
   Moon, 
   Info,
-  Sparkles,
   Camera
 } from 'lucide-react';
 import confetti from 'canvas-confetti';

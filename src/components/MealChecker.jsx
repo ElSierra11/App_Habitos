@@ -7,14 +7,9 @@ import {
   Droplets, 
   Utensils, 
   Camera, 
-  Upload, 
   X, 
   Save, 
   Check, 
-  Info,
-  Clock,
-  Heart,
-  ChevronRight,
   Maximize2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';

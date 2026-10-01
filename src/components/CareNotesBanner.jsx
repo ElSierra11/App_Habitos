@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import { 
-  HeartHandshake, 
   Sparkles, 
   Heart, 
   Clock, 
   MessageSquare, 
   X, 
   Droplets, 
-  Smile, 
   Check 
 } from 'lucide-react';
 import confetti from 'canvas-confetti';

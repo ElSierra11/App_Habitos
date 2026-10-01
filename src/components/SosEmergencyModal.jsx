@@ -8,8 +8,7 @@ import {
   X, 
   DropletOff, 
   Stethoscope, 
-  HelpCircle,
-  ExternalLink
+  HelpCircle
 } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 

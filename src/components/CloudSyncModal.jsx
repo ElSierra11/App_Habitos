@@ -26,8 +26,6 @@ export const CloudSyncModal = ({
   onSaveCloudConfig,
   onDataSynced
 }) => {
-  if (!isOpen) return null;
-
   const [url, setUrl] = useState(cloudConfig?.supabaseUrl || '');
   const [anonKey, setAnonKey] = useState(cloudConfig?.supabaseAnonKey || '');
   const [tableName, setTableName] = useState(cloudConfig?.tableName || 'breyhabitos_sync');
@@ -39,6 +37,8 @@ export const CloudSyncModal = ({
   const [statusMsg, setStatusMsg] = useState(null); // { type: 'success' | 'error', text: '' }
   const [showGuide, setShowGuide] = useState(false);
   const [copiedSql, setCopiedSql] = useState(false);
+
+  if (!isOpen) return null;
 
   const handleTestConnection = async () => {
     setTesting(true);

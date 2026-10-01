@@ -18,7 +18,6 @@ import {
   Settings,
   X,
   MessageSquareHeart,
-  Heart,
   Flame
 } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
@@ -363,6 +362,24 @@ export const Navbar = ({
                     {notifState === 'granted' ? 'Activas' : 'Permitir'}
                   </span>
                 </button>
+
+                {/* iPhone / iOS Guide */}
+                {onOpenIosGuide && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileSettingsOpen(false);
+                      onOpenIosGuide();
+                    }}
+                    className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-rosePastel-50 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300"
+                  >
+                    <span className="flex items-center space-x-2">
+                      <Bell className="w-4 h-4 text-sky-600" />
+                      <span>Guía iPhone / iOS</span>
+                    </span>
+                    <span className="text-[10px] font-bold text-sky-600">Ver</span>
+                  </button>
+                )}
               </div>
             )}
           </div>

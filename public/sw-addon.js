@@ -44,7 +44,7 @@ async function checkBackgroundCareNotes() {
         lastSeenNoteId = latest.id;
       }
     }
-  } catch (err) {
+  } catch {
     // Network errors in background ignored
   }
 }

@@ -6,12 +6,8 @@ import {
   Check, 
   Share2, 
   X, 
-  ShieldCheck, 
-  ArrowRight, 
   CheckCircle2, 
-  Sparkles,
   Info,
-  ExternalLink,
   Laptop
 } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
@@ -23,12 +19,12 @@ export const DeviceSyncModal = ({
   onClose,
   onDeviceLinked
 }) => {
-  if (!isOpen) return null;
-
   const [copied, setCopied] = useState(false);
   const [pasteInput, setPasteInput] = useState('');
   const [pasteStatus, setPasteStatus] = useState(null);
   const [activeSubTab, setActiveSubTab] = useState('qr'); // 'qr' | 'paste'
+
+  if (!isOpen) return null;
 
   const currentUsers = getStoredUsers();
   const currentUser = getCurrentUser();

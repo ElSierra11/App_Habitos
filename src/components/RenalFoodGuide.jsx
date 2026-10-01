@@ -12,16 +12,14 @@ import { triggerHaptic } from '../utils/haptics';
 export const RenalFoodGuide = ({ foodGuide = [] }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'safe' | 'moderate' | 'avoid'
-  const [categoryFilter, setCategoryFilter] = useState('all');
 
   const filteredFoods = foodGuide.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           item.benefit.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           item.category.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
-    const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
 
-    return matchesSearch && matchesStatus && matchesCategory;
+    return matchesSearch && matchesStatus;
   });
 
   const getStatusBadge = (status) => {

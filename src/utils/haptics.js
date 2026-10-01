@@ -3,7 +3,7 @@ export const triggerHaptic = (pattern = [15]) => {
   if (typeof window !== 'undefined' && 'navigator' in window && typeof navigator.vibrate === 'function') {
     try {
       navigator.vibrate(pattern);
-    } catch (e) {
+    } catch {
       // Gracefully ignore if device or permission blocks vibration
     }
   }

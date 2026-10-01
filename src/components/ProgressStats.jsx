@@ -3,14 +3,11 @@ import {
   BarChart3, 
   TrendingUp, 
   Droplets, 
-  Utensils, 
-  Calendar, 
   Flame, 
   CheckCircle2, 
   Activity, 
   Eye, 
-  Sparkles,
-  ArrowUpRight
+  Sparkles
 } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 
@@ -23,7 +20,6 @@ export const ProgressStats = ({
   streakData = { streak: 1 }
 }) => {
   const [rangeDays, setRangeDays] = useState(7); // 7 | 14 | 30
-  const [hoveredDay, setHoveredDay] = useState(null);
 
   // Generate list of dates for the selected range (oldest to newest)
   const daysList = [];
@@ -250,7 +246,7 @@ export const ProgressStats = ({
 
           {/* Chart Bars Container */}
           <div className="h-56 flex items-end justify-between gap-1 sm:gap-2 px-1 border-b border-slate-200 dark:border-slate-800">
-            {chartData.map((item, index) => {
+            {chartData.map((item) => {
               const heightPx = Math.max(10, Math.round((item.totalMl / maxBarValue) * 180));
               const isMet = item.totalMl >= targetWaterMl;
               const isModerate = item.totalMl >= 2000 && item.totalMl < targetWaterMl;

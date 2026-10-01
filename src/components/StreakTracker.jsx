@@ -5,9 +5,7 @@ import {
   Sparkles, 
   Heart, 
   Lock, 
-  Unlock, 
-  CheckCircle2, 
-  Calendar 
+  CheckCircle2 
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { triggerHaptic } from '../utils/haptics';

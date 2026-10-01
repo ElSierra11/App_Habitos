@@ -7,11 +7,7 @@ import {
   Flame, 
   Moon, 
   X, 
-  Check, 
   Trash2, 
-  ShieldAlert,
-  Sliders,
-  Sparkles,
   Smartphone
 } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
@@ -25,8 +21,6 @@ export const NotificationCenterModal = ({
   onUpdateSettings,
   onOpenIosGuide
 }) => {
-  if (!isOpen) return null;
-
   const [activeSubTab, setActiveSubTab] = useState('inbox'); // 'inbox' | 'settings'
 
   const [duolingoMode, setDuolingoMode] = useState(() => {
@@ -39,6 +33,8 @@ export const NotificationCenterModal = ({
 
   const [quietStart, setQuietStart] = useState(() => settings?.quietStart || '23:00');
   const [quietEnd, setQuietEnd] = useState(() => settings?.quietEnd || '07:00');
+
+  if (!isOpen) return null;
 
   const handleSavePreferences = () => {
     triggerHaptic([15, 30]);

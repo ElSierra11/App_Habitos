@@ -8,23 +8,26 @@ import {
   WifiOff, 
   Heart, 
   Droplets, 
-  BellRing,
-  ShieldAlert
+  BellRing
 } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 
 export const Toast = ({ toast, onClose }) => {
-  if (!toast) return null;
-
-  const { id, type = 'info', title, message, duration = 3800 } = toast;
   const [progress, setProgress] = useState(100);
+  const id = toast?.id;
+  const type = toast?.type || 'info';
+  const title = toast?.title;
+  const message = toast?.message;
+  const duration = toast?.duration || 3800;
 
   useEffect(() => {
+    if (!toast) return;
     triggerHaptic([12]);
-  }, [id]);
+    setProgress(100);
+  }, [id, toast]);
 
   useEffect(() => {
-    if (duration <= 0) return;
+    if (!toast || duration <= 0) return;
 
     const startTime = Date.now();
     const interval = setInterval(() => {
@@ -39,7 +42,9 @@ export const Toast = ({ toast, onClose }) => {
     }, 40);
 
     return () => clearInterval(interval);
-  }, [id, duration, onClose]);
+  }, [id, duration, onClose, toast]);
+
+  if (!toast) return null;
 
   const getStyleAndIcon = () => {
     switch (type) {

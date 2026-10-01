@@ -1,14 +1,8 @@
 import React, { useState } from 'react';
 import { 
   Moon, 
-  Bed, 
-  Clock, 
   Droplets, 
-  CheckCircle2, 
-  Sparkles, 
-  Activity,
-  Info,
-  Calendar
+  Activity
 } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 

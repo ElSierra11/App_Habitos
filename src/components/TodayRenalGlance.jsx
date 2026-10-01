@@ -7,9 +7,7 @@ import {
   AlertCircle, 
   Heart, 
   ShieldAlert, 
-  MessageSquareHeart, 
-  TrendingUp, 
-  Sparkles 
+  MessageSquareHeart
 } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 

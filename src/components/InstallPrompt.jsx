@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, X, Share, Sparkles, Smartphone } from 'lucide-react';
+import { Download, X, Share } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 
 export const InstallPrompt = () => {

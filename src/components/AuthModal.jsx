@@ -12,7 +12,6 @@ import {
   EyeOff,
   QrCode,
   Loader2,
-  HelpCircle,
   Smartphone
 } from 'lucide-react';
 import { getStoredUsers, saveUser, ADMIN_EMAIL, getCloudConfig, getAllAppData, importAllAppData } from '../utils/storage';

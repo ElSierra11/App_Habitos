@@ -11,8 +11,6 @@ import {
   BarChart3,
   Utensils,
   Heart,
-  ShieldAlert,
-  MessageSquareHeart,
   Flame
 } from 'lucide-react';
 
@@ -155,7 +153,8 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [syncStatus, setSyncStatusState] = useState(getSyncStatus);
 
-  const lastWaterAlertTimeRef = useRef(Date.now());
+  const [initialTimestamp] = useState(() => Date.now());
+  const lastWaterAlertTimeRef = useRef(initialTimestamp);
   const lastSeenNoteIdRef = useRef((() => {
     try {
       return localStorage.getItem('breyhabitos_last_seen_note_id_v1') || null;
@@ -230,6 +229,11 @@ export default function App() {
     }
   };
 
+  const handleCloudDataSyncedRef = useRef(handleCloudDataSynced);
+  useEffect(() => {
+    handleCloudDataSyncedRef.current = handleCloudDataSynced;
+  });
+
   // Sync initial note ID and cloud config to Service Worker for background monitoring
   useEffect(() => {
     if (!lastSeenNoteIdRef.current && careNotes && careNotes.length > 0) {
@@ -259,7 +263,7 @@ export default function App() {
       cloudConfig,
       () => getAllAppData(),
       (merged) => {
-        handleCloudDataSynced(merged);
+        handleCloudDataSyncedRef.current(merged);
         showToast({
           type: 'cloud',
           title: 'Sincronizado',
@@ -303,19 +307,6 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [isAuthModalOpen, isCloudSyncOpen, isSosOpen, isWhatsAppCheckInOpen, activeAlert, activeTab]);
-
-  // Handle initial PWA shortcut action query params
-  useEffect(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const action = params.get('action');
-      if (action === 'quick_water') {
-        handleAddWater(250);
-      } else if (action === 'sos') {
-        setIsSosOpen(true);
-      }
-    } catch {}
-  }, []);
 
   // Push history state so back button closes modals or returns to dashboard
   useEffect(() => {
@@ -597,6 +588,14 @@ export default function App() {
     triggerCloudPush({ foodGuide: updated });
   };
 
+  const handleAddWaterRef = useRef(handleAddWater);
+  const handleDeviceLinkedRef = useRef(handleDeviceLinked);
+
+  useEffect(() => {
+    handleAddWaterRef.current = handleAddWater;
+    handleDeviceLinkedRef.current = handleDeviceLinked;
+  });
+
   // URL Query Parameters Handling (PWA Shortcuts & Device Pairing)
   useEffect(() => {
     try {
@@ -608,16 +607,18 @@ export default function App() {
         const res = applyDevicePairingToken(pairParam);
         if (res.success && res.payload) {
           importAllAppData(res.payload);
-          handleDeviceLinked(res.payload);
+          handleDeviceLinkedRef.current(res.payload);
           triggerHaptic([20, 60]);
           if (soundEnabled) playAlertSound('meal');
         }
       }
 
-      if (actionParam === 'add_water_250') {
-        handleAddWater(250);
+      if (actionParam === 'add_water_250' || actionParam === 'quick_water') {
+        handleAddWaterRef.current(250);
         triggerHaptic([20, 40]);
         if (soundEnabled) playAlertSound('water');
+      } else if (actionParam === 'sos') {
+        setIsSosOpen(true);
       }
 
       if (params.get('tab') || actionParam || pairParam) {
@@ -626,7 +627,7 @@ export default function App() {
     } catch {
       // ignore
     }
-  }, []);
+  }, [soundEnabled]);
 
   // Periodic Cloud Pull (Auto-sync every 12s for rapid cross-device message arrival)
   useEffect(() => {
@@ -639,7 +640,7 @@ export default function App() {
           const local = getAllAppData();
           const merged = mergeAppData(local, res.cloudData);
           importAllAppData(merged);
-          handleCloudDataSynced(merged);
+          handleCloudDataSyncedRef.current(merged);
         }
       } catch (err) {
         console.warn('Auto-sync error:', err);
@@ -657,7 +658,7 @@ export default function App() {
 
     // Listen to lock-screen action "Tomé 250 ml" from background Service Worker
     const unregister = setupServiceWorkerListener((amount) => {
-      handleAddWater(amount);
+      handleAddWaterRef.current(amount);
       triggerHaptic([20, 50]);
       if (soundEnabled) playAlertSound('water');
     });
