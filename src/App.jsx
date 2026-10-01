@@ -27,6 +27,7 @@ import { StreakTracker } from './components/StreakTracker';
 import { SymptomTracker } from './components/SymptomTracker';
 import { ProgressStats } from './components/ProgressStats';
 import { CloudSyncModal } from './components/CloudSyncModal';
+import { DeviceSyncModal } from './components/DeviceSyncModal';
 import { Toast } from './components/Toast';
 import { MobileBottomNav } from './components/MobileBottomNav';
 
@@ -40,6 +41,7 @@ import {
   deleteWaterLog,
   getMealLogs,
   toggleMealLog,
+  addDetailedMealLog,
   getSleepLogs,
   saveSleepLog,
   getFoodGuide,
@@ -47,6 +49,8 @@ import {
   deleteFoodItem,
   getCareNotes,
   addCareNote,
+  reactToCareNote,
+  deleteCareNote,
   getUrineLogs,
   addUrineLog,
   deleteUrineLog,
@@ -69,7 +73,8 @@ import {
   performTwoWaySync, 
   initAutoSync, 
   subscribeSyncStatus, 
-  getSyncStatus 
+  getSyncStatus,
+  applyDevicePairingToken
 } from './utils/cloudSync';
 import { playAlertSound } from './utils/sound';
 import { 
@@ -92,6 +97,7 @@ export default function App() {
   const [symptomLogs, setSymptomLogs] = useState(getSymptomLogs);
   const [cloudConfig, setCloudConfigState] = useState(getCloudConfig);
   const [isCloudSyncOpen, setIsCloudSyncOpen] = useState(false);
+  const [isDeviceSyncOpen, setIsDeviceSyncOpen] = useState(false);
   const [theme, setTheme] = useState(getStoredTheme);
 
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -339,10 +345,66 @@ export default function App() {
   };
 
   // Care notes
-  const handleAddCareNote = (message, author) => {
-    const updated = addCareNote(message, author);
+  const handleAddCareNote = (message, author, category, important) => {
+    const updated = addCareNote(message, author, category, important);
     setCareNotes(updated);
     triggerCloudPush({ careNotes: updated });
+    showToast({
+      type: 'heart',
+      title: 'Mensaje publicado',
+      message: 'Tu nota motivacional ya está visible para Brey',
+      duration: 3000,
+    });
+  };
+
+  const handleReactToCareNote = (noteId, emoji, label) => {
+    const updated = reactToCareNote(noteId, emoji, label);
+    setCareNotes(updated);
+    triggerCloudPush({ careNotes: updated });
+    showToast({
+      type: 'heart',
+      title: 'Reacción enviada',
+      message: `Le enviaste un ${emoji} a Alejandro`,
+      duration: 2500,
+    });
+  };
+
+  const handleDeleteCareNote = (noteId) => {
+    const updated = deleteCareNote(noteId);
+    setCareNotes(updated);
+    triggerCloudPush({ careNotes: updated });
+  };
+
+  // Detailed Meal handler (Photo + Text + Evaluation)
+  const handleSaveDetailedMeal = ({ mealId, mealName, dishName, photoUrl, evaluation, notes }) => {
+    const { updated } = addDetailedMealLog({ mealId, mealName, dishName, photoUrl, evaluation, notes });
+    setMealLogs(updated);
+    triggerCloudPush({ mealLogs: updated });
+    showToast({
+      type: 'success',
+      title: 'Comida registrada',
+      message: `${dishName || 'Plato'} guardado y evaluado`,
+      duration: 3000,
+    });
+  };
+
+  // Device Linked via QR or pairing token
+  const handleDeviceLinked = (payload) => {
+    if (payload.currentUser) {
+      setCurrentUserState(payload.currentUser);
+      setCurrentUser(payload.currentUser);
+    }
+    if (payload.cloudConfig) {
+      setCloudConfigState(payload.cloudConfig);
+    }
+    const full = getAllAppData();
+    handleCloudDataSynced(full);
+    showToast({
+      type: 'success',
+      title: '¡Dispositivo Vinculado!',
+      message: 'Tus cuentas y datos se sincronizaron con éxito',
+      duration: 3500,
+    });
   };
 
   // Food guide
@@ -358,11 +420,22 @@ export default function App() {
     triggerCloudPush({ foodGuide: updated });
   };
 
-  // URL Query Parameters Handling (PWA Shortcuts)
+  // URL Query Parameters Handling (PWA Shortcuts & Device Pairing)
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
       const actionParam = params.get('action');
+      const pairParam = params.get('pair');
+
+      if (pairParam) {
+        const res = applyDevicePairingToken(pairParam);
+        if (res.success && res.payload) {
+          importAllAppData(res.payload);
+          handleDeviceLinked(res.payload);
+          triggerHaptic([20, 60]);
+          if (soundEnabled) playAlertSound('meal');
+        }
+      }
 
       if (actionParam === 'add_water_250') {
         handleAddWater(250);
@@ -370,7 +443,7 @@ export default function App() {
         if (soundEnabled) playAlertSound('water');
       }
 
-      if (params.get('tab') || actionParam) {
+      if (params.get('tab') || actionParam || pairParam) {
         window.history.replaceState({}, document.title, window.location.pathname);
       }
     } catch {
@@ -514,6 +587,7 @@ export default function App() {
         setActiveTab={setActiveTab}
         cloudConfig={cloudConfig}
         onOpenCloudSync={() => setIsCloudSyncOpen(true)}
+        onOpenDeviceSync={() => setIsDeviceSyncOpen(true)}
         syncStatus={syncStatus}
         onTriggerManualSync={handleTriggerManualSync}
         theme={theme}
@@ -524,7 +598,11 @@ export default function App() {
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 pb-28 md:pb-8">
         
         {/* Top Care Note from Boyfriend */}
-        <CareNotesBanner careNotes={careNotes} />
+        <CareNotesBanner 
+          careNotes={careNotes} 
+          onReactToNote={handleReactToCareNote}
+          currentUser={currentUser}
+        />
 
         {/* Navigation Tabs (Mobile & Desktop) */}
         <div className="flex items-center justify-between border-b border-sky-200/80 dark:border-slate-800 pb-2 gap-2">
@@ -710,6 +788,7 @@ export default function App() {
                     schedule={settings.mealSchedule}
                     mealLogs={mealLogs}
                     onToggleMeal={handleToggleMeal}
+                    onOpenEvaluator={() => setActiveTab('evaluator')}
                     soundEnabled={soundEnabled}
                   />
                 </div>
@@ -740,9 +819,14 @@ export default function App() {
             />
           )}
 
-          {/* Evaluador de comidas: Brey ingresa lo que come y la app le responde */}
+          {/* Evaluador de comidas: Brey ingresa lo que come, toma fotos y la app le responde */}
           {activeTab === 'evaluator' && (
-            <MealChecker />
+            <MealChecker 
+              onSaveMeal={handleSaveDetailedMeal}
+              mealLogs={mealLogs}
+              mealSchedule={settings.mealSchedule}
+              soundEnabled={soundEnabled}
+            />
           )}
 
           {/* Semáforo de color de orina (Armstrong Scale) */}
@@ -781,6 +865,7 @@ export default function App() {
               sleepLogs={sleepLogs}
               careNotes={careNotes}
               onAddCareNote={handleAddCareNote}
+              onDeleteCareNote={handleDeleteCareNote}
               foodGuide={foodGuide}
               onAddFoodItem={handleAddFood}
               onDeleteFoodItem={handleDeleteFood}
@@ -788,6 +873,7 @@ export default function App() {
               symptomLogs={symptomLogs}
               cloudConfig={cloudConfig}
               onOpenCloudSync={() => setIsCloudSyncOpen(true)}
+              onOpenDeviceSync={() => setIsDeviceSyncOpen(true)}
             />
           )}
         </div>
@@ -823,6 +909,14 @@ export default function App() {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         onLoginSuccess={handleLoginSuccess}
+        onOpenDeviceSync={() => setIsDeviceSyncOpen(true)}
+      />
+
+      {/* Device QR & Link Sync Modal */}
+      <DeviceSyncModal
+        isOpen={isDeviceSyncOpen}
+        onClose={() => setIsDeviceSyncOpen(false)}
+        onDeviceLinked={handleDeviceLinked}
       />
 
       {/* Cloud Sync Modal */}

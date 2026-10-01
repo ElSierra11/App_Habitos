@@ -13,7 +13,8 @@ import {
   CloudOff, 
   Sun, 
   Moon, 
-  Loader2 
+  Loader2,
+  QrCode
 } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 import { requestNotificationPermission, triggerSystemNotification, getNotificationPermissionState } from '../utils/notifications';
@@ -28,6 +29,7 @@ export const Navbar = ({
   setActiveTab,
   cloudConfig,
   onOpenCloudSync,
+  onOpenDeviceSync,
   syncStatus,
   onTriggerManualSync,
   theme = 'light',
@@ -149,6 +151,19 @@ export const Navbar = ({
             ) : (
               <CloudOff className="w-4 h-4 text-slate-400" />
             )}
+          </button>
+
+          {/* QR Device Sync button */}
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic([10]);
+              if (onOpenDeviceSync) onOpenDeviceSync();
+            }}
+            title="Vincular Celular con PC mediante Código QR o Enlace"
+            className="p-1.5 sm:p-2 rounded-xl bg-sky-50/80 dark:bg-slate-800 hover:bg-sky-100 dark:hover:bg-slate-700 active:scale-95 text-sky-700 dark:text-sky-300 border border-sky-200/70 dark:border-slate-700 transition-all cursor-pointer shadow-sm"
+          >
+            <QrCode className="w-4 h-4 text-sky-600 dark:text-sky-400" />
           </button>
 
           {/* Audio toggle button */}

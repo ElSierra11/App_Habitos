@@ -87,6 +87,69 @@ describe('Cloud Synchronization Engine (cloudSync)', () => {
       const merged = mergeAppData(local, cloud);
       expect(merged.careNotes).toHaveLength(2);
     });
+
+    it('merges registered users seamlessly between PC and mobile phone', () => {
+      const local = {
+        users: [
+          { id: 'u1', email: 'alejosierra656@gmail.com', name: 'Alejandro', role: 'admin' }
+        ]
+      };
+      const cloud = {
+        users: [
+          { id: 'u1', email: 'alejosierra656@gmail.com', name: 'Alejandro', role: 'admin' },
+          { id: 'u2', email: 'brey@paciente.com', name: 'Brey', role: 'patient' }
+        ]
+      };
+
+      const merged = mergeAppData(local, cloud);
+      expect(merged.users).toHaveLength(2);
+      expect(merged.users.map(u => u.email)).toContain('brey@paciente.com');
+    });
+
+    it('preserves meal photoUrl and evaluation when merging meals', () => {
+      const local = {
+        mealLogs: [
+          { id: 'm1', date: '2026-09-30', mealId: 'almuerzo', dishName: 'Pollo' }
+        ]
+      };
+      const cloud = {
+        mealLogs: [
+          { id: 'm1', date: '2026-09-30', mealId: 'almuerzo', dishName: 'Pollo', photoUrl: 'data:image/jpeg;base64,abc123', evaluation: { status: 'safe', score: 95 } }
+        ]
+      };
+
+      const merged = mergeAppData(local, cloud);
+      expect(merged.mealLogs[0].photoUrl).toBe('data:image/jpeg;base64,abc123');
+      expect(merged.mealLogs[0].evaluation.score).toBe(95);
+    });
+  });
+
+  describe('Device Pairing Tokens (Cross-device PC & Mobile linking)', () => {
+    it('generates a valid portable pairing token and restores it on mobile', async () => {
+      const { generateDevicePairingToken, applyDevicePairingToken } = await import('../cloudSync');
+      const samplePayload = {
+        users: [{ id: 'u100', email: 'brey@salud.com', name: 'Brey' }],
+        cloudConfig: { roomId: 'test_room', enabled: true },
+        currentUser: { id: 'u100', email: 'brey@salud.com', name: 'Brey', role: 'patient' }
+      };
+
+      const token = generateDevicePairingToken(samplePayload);
+      expect(token).toBeDefined();
+      expect(typeof token).toBe('string');
+
+      const restored = applyDevicePairingToken(token);
+      expect(restored.success).toBe(true);
+      expect(restored.payload.users[0].email).toBe('brey@salud.com');
+      expect(restored.payload.currentUser.name).toBe('Brey');
+      expect(restored.payload.cloudConfig.roomId).toBe('test_room');
+    });
+
+    it('handles malformed pairing tokens safely', async () => {
+      const { applyDevicePairingToken } = await import('../cloudSync');
+      const res = applyDevicePairingToken('not-a-valid-token');
+      expect(res.success).toBe(false);
+      expect(res.error).toBeDefined();
+    });
   });
 
   describe('testCloudConnection', () => {

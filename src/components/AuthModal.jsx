@@ -9,12 +9,17 @@ import {
   CheckCircle2, 
   AlertCircle,
   Eye,
-  EyeOff
+  EyeOff,
+  QrCode,
+  Loader2,
+  HelpCircle,
+  Smartphone
 } from 'lucide-react';
-import { getStoredUsers, saveUser, ADMIN_EMAIL } from '../utils/storage';
+import { getStoredUsers, saveUser, ADMIN_EMAIL, getCloudConfig, getAllAppData, importAllAppData } from '../utils/storage';
+import { pullFromCloud, pushToCloud, mergeAppData } from '../utils/cloudSync';
 import { triggerHaptic } from '../utils/haptics';
 
-export const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
+export const AuthModal = ({ isOpen, onClose, onLoginSuccess, onOpenDeviceSync }) => {
   const [mode, setMode] = useState('login'); // 'login' | 'register'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,25 +27,53 @@ export const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isCheckingCloud, setIsCheckingCloud] = useState(false);
+  const [showCrossDeviceHelp, setShowCrossDeviceHelp] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     triggerHaptic([15]);
     setError('');
     setSuccess('');
+    setShowCrossDeviceHelp(false);
 
-    const users = getStoredUsers();
+    let users = getStoredUsers();
     const cleanEmail = email.trim().toLowerCase();
 
     if (mode === 'login') {
-      const user = users.find(
+      let user = users.find(
         (u) => u.email.toLowerCase() === cleanEmail && u.password === password
       );
 
+      // If user not found locally, attempt to pull latest users from cloud if cloud is enabled
+      if (!user) {
+        const cloudConfig = getCloudConfig();
+        if (cloudConfig?.enabled) {
+          setIsCheckingCloud(true);
+          try {
+            const pullRes = await pullFromCloud(cloudConfig);
+            if (pullRes.success && pullRes.cloudData) {
+              const localData = getAllAppData();
+              const merged = mergeAppData(localData, pullRes.cloudData);
+              importAllAppData(merged);
+              users = getStoredUsers();
+              user = users.find(
+                (u) => u.email.toLowerCase() === cleanEmail && u.password === password
+              );
+            }
+          } catch {
+            // cloud pull error handled silently
+          } finally {
+            setIsCheckingCloud(false);
+          }
+        }
+      }
+
       if (!user) {
         setError('Credenciales incorrectas. Verifique su correo y contraseña.');
+        setShowCrossDeviceHelp(true);
         return;
       }
 
@@ -72,6 +105,15 @@ export const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
 
       try {
         saveUser(newUser);
+        
+        // If cloud sync is enabled, immediately push new user to cloud so other devices have it
+        const cloudConfig = getCloudConfig();
+        if (cloudConfig?.enabled) {
+          pushToCloud(cloudConfig, getAllAppData()).catch(err => {
+            console.warn('Could not auto-push new user to cloud:', err);
+          });
+        }
+
         setSuccess('Cuenta registrada exitosamente.');
         setTimeout(() => {
           onLoginSuccess(newUser);
@@ -233,15 +275,63 @@ export const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
 
 
 
+          {showCrossDeviceHelp && (
+            <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 space-y-2 text-xs">
+              <div className="flex items-start space-x-2 text-amber-900 dark:text-amber-200 font-bold">
+                <Smartphone className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <span>¿Te registraste desde tu computador?</span>
+              </div>
+              <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                El navegador de este teléfono no tiene tus cuentas creadas en el computador hasta que las vincules una sola vez.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic([15]);
+                  onClose();
+                  if (onOpenDeviceSync) onOpenDeviceSync();
+                }}
+                className="w-full py-2 px-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs shadow-sm flex items-center justify-center space-x-1.5 transition-all cursor-pointer"
+              >
+                <QrCode className="w-3.5 h-3.5" />
+                <span>Vincular Celular con Código QR o Enlace</span>
+              </button>
+            </div>
+          )}
+
           <button
             type="submit"
-            className="w-full py-3 bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-sky-500/20 active:scale-95 transition-all cursor-pointer"
+            disabled={isCheckingCloud}
+            className="w-full py-3 bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600 disabled:opacity-60 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-sky-500/20 active:scale-95 transition-all cursor-pointer"
           >
-            {mode === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta'}
+            {isCheckingCloud ? (
+              <span className="flex items-center justify-center space-x-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Comprobando cuenta en la nube...</span>
+              </span>
+            ) : mode === 'login' ? (
+              'Iniciar Sesión'
+            ) : (
+              'Crear Cuenta'
+            )}
           </button>
         </form>
 
-
+        {/* Cross-device link footer */}
+        <div className="pt-3 text-center border-t border-sky-100 dark:border-slate-800">
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic([10]);
+              onClose();
+              if (onOpenDeviceSync) onOpenDeviceSync();
+            }}
+            className="text-xs text-sky-700 dark:text-sky-400 hover:underline font-semibold inline-flex items-center space-x-1.5 cursor-pointer"
+          >
+            <QrCode className="w-3.5 h-3.5 text-sky-500" />
+            <span>¿Te registraste en PC? Vincular con código QR</span>
+          </button>
+        </div>
 
       </div>
     </div>

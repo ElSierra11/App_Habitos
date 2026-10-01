@@ -501,6 +501,35 @@ export const deleteFoodItem = (id) => {
   return updated;
 };
 
+export const addDetailedMealLog = ({ mealId, mealName, dishName, photoUrl, evaluation, notes }) => {
+  const logs = getMealLogs();
+  const today = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const entry = {
+    id: 'm_' + Date.now(),
+    date: today,
+    mealId: mealId || 'extra',
+    mealName: mealName || 'Comida',
+    dishName: dishName || '',
+    photoUrl: photoUrl || null,
+    evaluation: evaluation || null,
+    completed: true,
+    timeRecorded: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    notes: notes || dishName || 'Comida registrada',
+  };
+
+  const existingIdx = logs.findIndex(l => l.date === today && l.mealId === mealId);
+  let updated;
+  if (existingIdx >= 0 && mealId && mealId !== 'extra') {
+    updated = [...logs];
+    updated[existingIdx] = { ...updated[existingIdx], ...entry };
+  } else {
+    updated = [entry, ...logs];
+  }
+  safeStorage.setItem(STORAGE_KEYS.MEAL_LOGS, JSON.stringify(updated));
+  return { entry, updated };
+};
+
 export const getCareNotes = () => {
   const data = safeStorage.getItem(STORAGE_KEYS.CARE_NOTES);
   if (!data) {
@@ -510,16 +539,41 @@ export const getCareNotes = () => {
   return JSON.parse(data);
 };
 
-export const addCareNote = (message, author = 'Alejandro') => {
+export const addCareNote = (message, author = 'Alejandro', category = 'motivation', important = true) => {
   const notes = getCareNotes();
   const entry = {
     id: 'cn_' + Date.now(),
     date: new Date().toISOString(),
     author,
     message,
-    important: true,
+    category, // 'motivation' | 'love' | 'water' | 'food' | 'cheer'
+    important: Boolean(important),
+    reactions: [],
   };
   const updated = [entry, ...notes];
+  safeStorage.setItem(STORAGE_KEYS.CARE_NOTES, JSON.stringify(updated));
+  return updated;
+};
+
+export const reactToCareNote = (noteId, emoji = '❤️', label = 'Leído con amor') => {
+  const notes = getCareNotes();
+  const updated = notes.map(n => {
+    if (n.id === noteId) {
+      const existing = n.reactions || [];
+      return {
+        ...n,
+        reactions: [...existing, { emoji, label, date: new Date().toISOString() }]
+      };
+    }
+    return n;
+  });
+  safeStorage.setItem(STORAGE_KEYS.CARE_NOTES, JSON.stringify(updated));
+  return updated;
+};
+
+export const deleteCareNote = (noteId) => {
+  const notes = getCareNotes();
+  const updated = notes.filter(n => n.id !== noteId);
   safeStorage.setItem(STORAGE_KEYS.CARE_NOTES, JSON.stringify(updated));
   return updated;
 };
@@ -686,6 +740,7 @@ export const saveCloudConfig = (config) => {
 // Export and Import all local state for cloud sync
 export const getAllAppData = () => {
   return {
+    users: JSON.parse(safeStorage.getItem(STORAGE_KEYS.USERS) || '[]'),
     settings: JSON.parse(safeStorage.getItem(STORAGE_KEYS.SETTINGS) || '{}'),
     waterLogs: JSON.parse(safeStorage.getItem(STORAGE_KEYS.WATER_LOGS) || '[]'),
     mealLogs: JSON.parse(safeStorage.getItem(STORAGE_KEYS.MEAL_LOGS) || '[]'),
@@ -700,6 +755,26 @@ export const getAllAppData = () => {
 
 export const importAllAppData = (data) => {
   if (!data) return;
+  if (Array.isArray(data.users) && data.users.length > 0) {
+    const existingUsers = getStoredUsers();
+    const map = new Map();
+    existingUsers.forEach(u => {
+      if (u && u.email) map.set(u.email.toLowerCase(), u);
+    });
+    data.users.forEach(u => {
+      if (u && u.email) {
+        const key = u.email.toLowerCase();
+        const isTargetAdmin = key === ADMIN_EMAIL.toLowerCase();
+        const role = isTargetAdmin ? 'admin' : 'patient';
+        if (!map.has(key)) {
+          map.set(key, { ...u, role });
+        } else {
+          map.set(key, { ...map.get(key), ...u, role });
+        }
+      }
+    });
+    safeStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(Array.from(map.values())));
+  }
   if (data.settings && Object.keys(data.settings).length > 0) {
     safeStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(data.settings));
   }

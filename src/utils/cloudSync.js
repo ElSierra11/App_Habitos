@@ -152,15 +152,49 @@ export function mergeAppData(local, cloud) {
     return Array.from(map.values());
   };
 
+  const mergeUsers = (localUsers = [], cloudUsers = []) => {
+    const map = new Map();
+    (localUsers || []).forEach(u => {
+      if (u && u.email) map.set(u.email.toLowerCase(), u);
+    });
+    (cloudUsers || []).forEach(u => {
+      if (u && u.email) {
+        const key = u.email.toLowerCase();
+        if (!map.has(key)) {
+          map.set(key, u);
+        } else {
+          map.set(key, { ...map.get(key), ...u });
+        }
+      }
+    });
+    return Array.from(map.values());
+  };
+
   const mergeMealLogs = (localMeals = [], cloudMeals = []) => {
-    const key = (m) => `${m.date}_${m.mealId}`;
+    const key = (m) => m.id ? m.id : `${m.date}_${m.mealId}`;
     const map = new Map();
     (localMeals || []).forEach(m => map.set(key(m), m));
-    (cloudMeals || []).forEach(m => map.set(key(m), m));
+    (cloudMeals || []).forEach(m => {
+      const k = key(m);
+      if (!map.has(k)) {
+        map.set(k, m);
+      } else {
+        // Keep photoUrl and evaluation if present
+        const existing = map.get(k);
+        map.set(k, {
+          ...existing,
+          ...m,
+          photoUrl: m.photoUrl || existing.photoUrl,
+          evaluation: m.evaluation || existing.evaluation,
+          dishName: m.dishName || existing.dishName,
+        });
+      }
+    });
     return Array.from(map.values());
   };
 
   return {
+    users: mergeUsers(local.users, cloud.users),
     settings: { ...(local.settings || {}), ...(cloud.settings || {}) },
     waterLogs: mergeById(local.waterLogs, cloud.waterLogs),
     mealLogs: mergeMealLogs(local.mealLogs, cloud.mealLogs),
@@ -171,6 +205,48 @@ export function mergeAppData(local, cloud) {
     symptomLogs: mergeById(local.symptomLogs, cloud.symptomLogs),
     syncedAt: new Date().toISOString(),
   };
+}
+
+/**
+ * Encodes key pairing information into a portable base64 token
+ * so users can link PC and mobile devices instantly without manually typing keys
+ */
+export function generateDevicePairingToken(data) {
+  try {
+    const payload = {
+      users: data.users || [],
+      cloudConfig: data.cloudConfig || null,
+      currentUser: data.currentUser ? {
+        id: data.currentUser.id,
+        email: data.currentUser.email,
+        name: data.currentUser.name,
+        role: data.currentUser.role,
+        password: data.currentUser.password,
+      } : null,
+      timestamp: Date.now(),
+    };
+    return btoa(encodeURIComponent(JSON.stringify(payload)));
+  } catch (err) {
+    console.error('Error creating pairing token:', err);
+    return null;
+  }
+}
+
+/**
+ * Decodes and applies pairing token into local storage
+ */
+export function applyDevicePairingToken(token) {
+  if (!token) return { success: false, error: 'Token vacío' };
+  try {
+    const raw = decodeURIComponent(atob(token.trim()));
+    const payload = JSON.parse(raw);
+    if (!payload || typeof payload !== 'object') {
+      return { success: false, error: 'Token inválido' };
+    }
+    return { success: true, payload };
+  } catch (err) {
+    return { success: false, error: 'Error al descifrar el token: ' + err.message };
+  }
 }
 
 // --- Realtime Sync Status & Offline Queue Management ---

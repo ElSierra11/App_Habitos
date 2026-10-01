@@ -15,7 +15,11 @@ import {
   Cloud,
   CloudOff,
   AlertTriangle,
-  Radio
+  Radio,
+  Heart,
+  QrCode,
+  Trash2,
+  Sparkles
 } from 'lucide-react';
 import { playAlertSound } from '../utils/sound';
 import { triggerHaptic } from '../utils/haptics';
@@ -28,18 +32,34 @@ export const AdminPanel = ({
   sleepLogs = [],
   careNotes = [],
   onAddCareNote,
+  onDeleteCareNote,
   foodGuide = [],
   onAddFoodItem,
+  onDeleteFoodItem,
   currentUser,
   symptomLogs = [],
   cloudConfig,
-  onOpenCloudSync
+  onOpenCloudSync,
+  onOpenDeviceSync
 }) => {
   const [targetWater, setTargetWater] = useState(settings?.targetWaterMl || 3000);
   const [reminderInterval, setReminderInterval] = useState(settings?.reminderIntervalMins || 60);
   const [mealSchedule, setMealSchedule] = useState(settings?.mealSchedule || []);
   const [newNoteMessage, setNewNoteMessage] = useState('');
+  const [noteCategory, setNoteCategory] = useState('love');
+  const [noteImportant, setNoteImportant] = useState(true);
+  const [noteSentSuccess, setNoteSentSuccess] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
+
+  // Motivational message presets
+  const motivationalPresets = [
+    { text: '¡Vamos mi amor! Cada vaso de agua que tomas hoy limpia tus riñones y te aleja del dolor. Estoy muy orgulloso de ti.', category: 'love' },
+    { text: '¡Buenos días mi princesa! Hoy alcanzamos los 3 litros de agua juntos, tú puedes con todo.', category: 'water' },
+    { text: 'Recuerda no saltarte las comidas y evitar comidas saladas. Te cuido desde aquí con todo mi corazón.', category: 'food' },
+    { text: '¡Qué juicio tan lindo tienes hoy! Vi tus registros y me llenas de tranquilidad y orgullo.', category: 'cheer' },
+    { text: 'Tómate una pausa, respira profundo y bébete un vaso de agua fresca con limón. Te amo.', category: 'love' },
+    { text: 'Tu salud y tu recuperación son lo más importante para mí. ¡Ánimo con la meta de hoy!', category: 'motivation' }
+  ];
 
   // New food form state
   const [foodName, setFoodName] = useState('');
@@ -82,9 +102,13 @@ export const AdminPanel = ({
   const handleCreateNote = (e) => {
     e.preventDefault();
     if (!newNoteMessage.trim()) return;
-    triggerHaptic([20]);
-    onAddCareNote(newNoteMessage.trim(), currentUser?.name || 'Alejandro');
+    triggerHaptic([20, 40]);
+    if (onAddCareNote) {
+      onAddCareNote(newNoteMessage.trim(), currentUser?.name || 'Alejandro', noteCategory, noteImportant);
+    }
     setNewNoteMessage('');
+    setNoteSentSuccess(true);
+    setTimeout(() => setNoteSentSuccess(false), 2500);
   };
 
   const handleAddFood = (e) => {
@@ -168,20 +192,36 @@ export const AdminPanel = ({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            triggerHaptic([10]);
-            if (onOpenCloudSync) onOpenCloudSync();
-          }}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer self-start sm:self-auto shrink-0 ${
-            cloudConfig?.enabled
-              ? 'bg-white dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-slate-700 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
-              : 'bg-sky-600 hover:bg-sky-700 text-white shadow-sky-600/20'
-          }`}
-        >
-          {cloudConfig?.enabled ? 'Gestionar Conexión' : 'Configurar Sincronización'}
-        </button>
+        <div className="flex items-center space-x-2 shrink-0 self-start sm:self-auto">
+          {onOpenDeviceSync && (
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic([10]);
+                onOpenDeviceSync();
+              }}
+              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-slate-750 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-slate-700 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+            >
+              <QrCode className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+              <span>Vincular Celular</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic([10]);
+              if (onOpenCloudSync) onOpenCloudSync();
+            }}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer ${
+              cloudConfig?.enabled
+                ? 'bg-white dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-slate-700 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
+                : 'bg-sky-600 hover:bg-sky-700 text-white shadow-sky-600/20'
+            }`}
+          >
+            {cloudConfig?.enabled ? 'Gestionar Conexión' : 'Configurar Sincronización'}
+          </button>
+        </div>
       </div>
 
       {/* Patient Live Status Overview (4 Columns) */}
@@ -373,35 +413,195 @@ export const AdminPanel = ({
         </div>
       </form>
 
-      {/* Post Care Message Section */}
-      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-sky-100/90 dark:border-slate-800 rounded-3xl p-6 sm:p-7 shadow-xl shadow-sky-500/5 space-y-4">
-        <div className="flex items-center space-x-3 border-b border-sky-100 dark:border-slate-800 pb-3">
-          <MessageSquare className="w-5 h-5 text-rose-500" />
-          <div>
-            <h2 className="text-base font-extrabold text-slate-900 dark:text-white">Enviar Mensaje de Ánimo o Recordatorio</h2>
-            <p className="text-xs text-slate-600 dark:text-slate-400">Este mensaje aparecerá fijado en la parte superior de la pantalla de Brey</p>
+      {/* Dedicated Motivational & Care Message Center */}
+      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-sky-100/90 dark:border-slate-800 rounded-3xl p-6 sm:p-7 shadow-xl shadow-sky-500/5 space-y-5">
+        <div className="flex items-center justify-between border-b border-sky-100 dark:border-slate-800 pb-3.5">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-500 to-pink-500 text-white flex items-center justify-center shadow-md shadow-rose-500/20">
+              <Heart className="w-5 h-5 fill-white" />
+            </div>
+            <div>
+              <h2 className="text-base font-extrabold text-slate-900 dark:text-white">
+                Enviar Mensajes Motivacionales y de Cariño a Brey
+              </h2>
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                Aparecerán de inmediato fijados en la parte superior de la pantalla de Brey
+              </p>
+            </div>
+          </div>
+
+          {noteSentSuccess && (
+            <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 flex items-center space-x-1.5 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800 animate-fade-in-up">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>¡Mensaje publicado a Brey!</span>
+            </span>
+          )}
+        </div>
+
+        {/* Quick Motivational Presets */}
+        <div>
+          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
+            Plantillas rápidas para enviar con 1 clic:
+          </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {motivationalPresets.map((preset, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  triggerHaptic([10]);
+                  setNewNoteMessage(preset.text);
+                  setNoteCategory(preset.category);
+                }}
+                className="text-left p-2.5 rounded-xl bg-sky-50/70 dark:bg-slate-800/80 hover:bg-sky-100 dark:hover:bg-slate-700 border border-sky-200/60 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 transition-all cursor-pointer group"
+              >
+                <div className="flex items-center space-x-1.5 mb-1 text-[10px] font-bold text-rose-600 dark:text-rose-400">
+                  <Sparkles className="w-3 h-3" />
+                  <span>Plantilla {idx + 1}</span>
+                </div>
+                <p className="line-clamp-2 font-medium">{preset.text}</p>
+              </button>
+            ))}
           </div>
         </div>
 
-        <form onSubmit={handleCreateNote} className="space-y-3">
-          <textarea
-            rows="3"
-            required
-            value={newNoteMessage}
-            onChange={(e) => setNewNoteMessage(e.target.value)}
-            placeholder="Escribe un recordatorio con cariño (ej. Recuerda tomarte el agua con limón que te preparé, te amo mucho)."
-            className="w-full px-4 py-3 bg-sky-50/60 dark:bg-slate-800/90 border border-sky-200 dark:border-slate-700 focus:border-rose-400 rounded-2xl text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none"
-          />
-          <div className="flex justify-end">
+        {/* Message Composer Form */}
+        <form onSubmit={handleCreateNote} className="space-y-4">
+          
+          {/* Category Chips */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              Tipo de Mensaje
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: 'love', label: '💖 Amor y Cariño' },
+                { id: 'motivation', label: '⚡ Motivación y Fuerza' },
+                { id: 'water', label: '💧 Recordatorio de Agua' },
+                { id: 'cheer', label: '🌟 Orgulloso de ti' },
+                { id: 'food', label: '🥗 Cuidado con la Comida' },
+              ].map(cat => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic([10]);
+                    setNoteCategory(cat.id);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                    noteCategory === cat.id
+                      ? 'bg-rose-500 text-white border-rose-500 shadow-md shadow-rose-500/20'
+                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-sky-200 dark:border-slate-700 hover:border-rose-300'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              Escribe tu Mensaje de Apoyo
+            </label>
+            <textarea
+              rows="3"
+              required
+              value={newNoteMessage}
+              onChange={(e) => setNewNoteMessage(e.target.value)}
+              placeholder="Escribe palabras con amor y ánimo para motivar a Brey en su recuperación..."
+              className="w-full px-4 py-3 bg-sky-50/60 dark:bg-slate-800/90 border border-sky-200 dark:border-slate-700 focus:border-rose-400 rounded-2xl text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-200 dark:focus:ring-rose-900/50"
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1">
+            <label className="flex items-center space-x-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={noteImportant}
+                onChange={(e) => setNoteImportant(e.target.checked)}
+                className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 border-gray-300"
+              />
+              <span>Fijar como Mensaje Especial (Destacado con brillo)</span>
+            </label>
+
             <button
               type="submit"
-              className="flex items-center space-x-1.5 px-4 py-2 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-rose-500/20 active:scale-95 cursor-pointer"
+              disabled={!newNoteMessage.trim()}
+              className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 disabled:opacity-50 text-white rounded-xl text-xs font-extrabold transition-all shadow-md shadow-rose-500/20 active:scale-95 cursor-pointer self-end sm:self-auto"
             >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>Publicar Mensaje en la App de Brey</span>
+              <Heart className="w-4 h-4 fill-white" />
+              <span>Publicar Mensaje en la Pantalla de Brey</span>
             </button>
           </div>
         </form>
+
+        {/* List of Sent Messages & Patient Reactions */}
+        {careNotes.length > 0 && (
+          <div className="pt-4 border-t border-sky-100 dark:border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Historial de Mensajes Enviados ({careNotes.length})
+              </span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                El primero es el que Brey ve actualmente arriba en su pantalla
+              </span>
+            </div>
+
+            <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+              {careNotes.map((note, index) => (
+                <div 
+                  key={note.id}
+                  className={`p-3.5 rounded-2xl border flex items-start justify-between gap-3 ${
+                    index === 0
+                      ? 'bg-rose-50/60 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/40'
+                      : 'bg-sky-50/40 dark:bg-slate-850 border-sky-100 dark:border-slate-800'
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2 mb-1">
+                      {index === 0 && (
+                        <span className="px-2 py-0.5 rounded-full bg-rose-500 text-white text-[9px] font-black uppercase tracking-wider">
+                          Activo ahora
+                        </span>
+                      )}
+                      <span className="text-[10px] font-mono text-slate-500">
+                        {note.date ? new Date(note.date).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-800 dark:text-slate-200 font-semibold">
+                      "{note.message}"
+                    </p>
+
+                    {/* Patient Reaction Badge */}
+                    {note.reactions && note.reactions.length > 0 && (
+                      <div className="mt-2 inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-800 text-[11px] font-bold text-rose-700 dark:text-rose-300 shadow-sm">
+                        <span>{note.reactions[note.reactions.length - 1].emoji}</span>
+                        <span>Brey reaccionó: {note.reactions[note.reactions.length - 1].label}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {onDeleteCareNote && careNotes.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic([10]);
+                        onDeleteCareNote(note.id);
+                      }}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                      title="Eliminar mensaje"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* Add Custom Food to Renal Guide */}

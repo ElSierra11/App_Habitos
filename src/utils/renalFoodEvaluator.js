@@ -44,6 +44,9 @@ export const evaluateMeal = (mealText = '') => {
   if (!text) {
     return {
       status: 'safe',
+      score: 100,
+      scoreColor: 'text-emerald-600',
+      badge: 'Listo para evaluar',
       headline: 'Escribe lo que vas a comer',
       analysis: ['Ingresa tu plato o ingredientes para analizar su impacto en tu salud renal.'],
       recommendation: 'Te diremos si contiene exceso de sodio, oxalatos o si es un alimento protector.',
@@ -76,10 +79,14 @@ export const evaluateMeal = (mealText = '') => {
     }
   });
 
-  // Determine overall status
+  // Determine overall status and score
   if (detectedAvoids.length > 0) {
+    const calculatedScore = Math.max(15, 45 - (detectedAvoids.length - 1) * 10);
     return {
       status: 'avoid',
+      score: calculatedScore,
+      scoreColor: 'text-rose-600 dark:text-rose-400',
+      badge: 'Riesgo para Cálculos',
       headline: 'Cuidado: Alimento no aconsejado tras cálculo renal',
       analysis: detectedAvoids,
       recommendation: 'Este plato tiene componentes con alto riesgo de formar nuevos cristales de calcio o sodio. Te recomendamos evitarlo o sustituir los ingredientes perjudiciales.',
@@ -88,8 +95,12 @@ export const evaluateMeal = (mealText = '') => {
   }
 
   if (detectedModerates.length > 0) {
+    const calculatedScore = Math.max(55, 75 - (detectedModerates.length - 1) * 8);
     return {
       status: 'moderate',
+      score: calculatedScore,
+      scoreColor: 'text-amber-600 dark:text-amber-400',
+      badge: 'Consumo con Moderación',
       headline: 'Consumo con moderación y cuidado',
       analysis: detectedModerates,
       recommendation: 'Puedes consumirlo en porciones controladas y sin añadir sal extra de mesa.',
@@ -98,8 +109,12 @@ export const evaluateMeal = (mealText = '') => {
   }
 
   if (detectedBeneficials.length > 0) {
+    const calculatedScore = Math.min(100, 90 + detectedBeneficials.length * 3);
     return {
       status: 'safe',
+      score: calculatedScore,
+      scoreColor: 'text-emerald-600 dark:text-emerald-400',
+      badge: 'Excelente y Protector Renal',
       headline: '¡Excelente opción para tus riñones!',
       analysis: detectedBeneficials,
       recommendation: 'Es un plato seguro, hidratante y digestivo que cuida tu aparato urinario.',
@@ -110,6 +125,9 @@ export const evaluateMeal = (mealText = '') => {
   // Neutral / General healthy guidance
   return {
     status: 'safe',
+    score: 85,
+    scoreColor: 'text-emerald-600 dark:text-emerald-400',
+    badge: 'Aceptable y Seguro',
     headline: 'Plato Aceptable (Controla la Sal)',
     analysis: ['No detectamos ingredientes de alto riesgo de litiasis (como refrescos oscuros o embutidos).'],
     recommendation: 'Asegúrate de prepararlo con hierbas aromáticas naturales (orégano, ajo, laurel) en lugar de sal de mesa o caldos artificiales.',

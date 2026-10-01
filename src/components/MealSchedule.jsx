@@ -9,7 +9,8 @@ import {
   Coffee, 
   Moon, 
   Info,
-  Sparkles
+  Sparkles,
+  Camera
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { playAlertSound } from '../utils/sound';
@@ -19,9 +20,11 @@ export const MealSchedule = ({
   schedule = [], 
   mealLogs = [], 
   onToggleMeal,
+  onOpenEvaluator,
   soundEnabled = true 
 }) => {
   const [animatingMealId, setAnimatingMealId] = useState(null);
+  const [zoomPhoto, setZoomPhoto] = useState(null);
 
   const today = new Date().toISOString().split('T')[0];
   const now = new Date();
@@ -176,17 +179,59 @@ export const MealSchedule = ({
                         <span>{meal.time}</span>
                       </span>
                       <span className="text-slate-300 dark:text-slate-600 text-xs">•</span>
-                      <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">{meal.description}</span>
+                      <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+                        {log?.dishName ? log.dishName : meal.description}
+                      </span>
                     </div>
+
+                    {/* Meal Photo Thumbnail & Health Evaluation Badge if recorded */}
+                    {isCompleted && log && (
+                      <div className="flex items-center space-x-2 mt-2">
+                        {log.photoUrl && (
+                          <img 
+                            src={log.photoUrl} 
+                            alt={log.dishName || meal.name} 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setZoomPhoto(log.photoUrl);
+                            }}
+                            className="w-10 h-10 rounded-lg object-cover border border-emerald-300 dark:border-emerald-700 cursor-pointer shadow-sm hover:scale-105 transition-transform shrink-0"
+                            title="Tocar para ampliar foto"
+                          />
+                        )}
+                        {log.evaluation && (
+                          <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
+                            log.evaluation.status === 'safe'
+                              ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                              : log.evaluation.status === 'moderate'
+                              ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                              : 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                          }`}>
+                            {log.evaluation.status === 'safe' ? '🟢 Saludable' : log.evaluation.status === 'moderate' ? '🟡 Moderado' : '🔴 Cuidado'} • {log.evaluation.score || 85} pts
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Right button */}
-                <div>
+                <div className="flex items-center space-x-1.5 shrink-0">
+                  {!isCompleted && onOpenEvaluator && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenEvaluator(meal.id)}
+                      title="Registrar con foto y evaluar ingredientes"
+                      className="p-2 rounded-xl bg-sky-50 dark:bg-slate-700 hover:bg-sky-100 dark:hover:bg-slate-600 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-slate-600 transition-all cursor-pointer shadow-sm active:scale-95"
+                    >
+                      <Camera className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => handleToggle(meal)}
-                    className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-sm ${
+                    className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-sm ${
                       isCompleted
                         ? 'bg-white dark:bg-emerald-950/50 hover:bg-emerald-100/60 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/80'
                         : 'bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600 text-white shadow-md shadow-sky-500/20'
@@ -200,7 +245,7 @@ export const MealSchedule = ({
                     ) : (
                       <>
                         <Circle className="w-4 h-4" />
-                        <span>Marcar ingerida</span>
+                        <span>Marcar</span>
                       </>
                     )}
                   </button>
@@ -211,6 +256,29 @@ export const MealSchedule = ({
           );
         })}
       </div>
+
+      {/* Modal for Zooming Full Photo */}
+      {zoomPhoto && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in-up"
+          onClick={() => setZoomPhoto(null)}
+        >
+          <div className="relative max-w-md w-full bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-700 p-2">
+            <button
+              type="button"
+              onClick={() => setZoomPhoto(null)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-black/60 text-white hover:bg-black/80 cursor-pointer z-10"
+            >
+              <Circle className="w-4 h-4" />
+            </button>
+            <img 
+              src={zoomPhoto} 
+              alt="Foto ampliada del plato" 
+              className="w-full max-h-[75vh] object-contain rounded-2xl"
+            />
+          </div>
+        </div>
+      )}
 
     </div>
   );
