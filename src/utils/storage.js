@@ -611,7 +611,7 @@ export const deleteSymptomLog = (id) => {
 export const getCloudConfig = () => {
   const data = safeStorage.getItem(STORAGE_KEYS.CLOUD_CONFIG);
   const envUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) || '';
-  const envKey = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) || '';
+  const envKey = (typeof import.meta !== 'undefined' && (import.meta.env?.VITE_SUPABASE_ANON_KEY || import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY)) || '';
   const envRoom = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ROOM_ID) || 'brey_alejandro_salud';
 
   if (!data) {
