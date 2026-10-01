@@ -12,7 +12,8 @@ import {
   Utensils,
   Heart,
   ShieldAlert,
-  MessageSquareHeart
+  MessageSquareHeart,
+  Flame
 } from 'lucide-react';
 
 import { Navbar } from './components/Navbar';
@@ -37,6 +38,8 @@ import { MobileBottomNav } from './components/MobileBottomNav';
 import { TodayRenalGlance } from './components/TodayRenalGlance';
 import { SosEmergencyModal } from './components/SosEmergencyModal';
 import { WhatsAppCheckInModal } from './components/WhatsAppCheckInModal';
+import { NotificationCenterModal } from './components/NotificationCenterModal';
+import { IosNotificationGuideModal } from './components/IosNotificationGuideModal';
 
 import {
   getCurrentUser,
@@ -119,6 +122,35 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSosOpen, setIsSosOpen] = useState(false);
   const [isWhatsAppCheckInOpen, setIsWhatsAppCheckInOpen] = useState(false);
+  const [isNotifCenterOpen, setIsNotifCenterOpen] = useState(false);
+  const [isIosGuideOpen, setIsIosGuideOpen] = useState(false);
+  const [notificationHistory, setNotificationHistory] = useState(() => {
+    try {
+      const raw = localStorage.getItem('breyhabitos_notification_history_v1');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const addNotificationToHistory = ({ type, title, message }) => {
+    const item = {
+      id: 'notif_' + Date.now() + Math.random(),
+      type: type || 'water',
+      title,
+      message,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      date: new Date().toISOString().split('T')[0]
+    };
+    setNotificationHistory(prev => {
+      const updated = [item, ...prev].slice(0, 30);
+      try {
+        localStorage.setItem('breyhabitos_notification_history_v1', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
+
   const [activeAlert, setActiveAlert] = useState(null);
   const [toast, setToast] = useState(null);
   const [syncStatus, setSyncStatusState] = useState(getSyncStatus);
@@ -371,17 +403,52 @@ export default function App() {
     lastWaterAlertTimeRef.current = Date.now();
     triggerCloudPush({ waterLogs: res.updated });
     
-    // Quick encouraging feedback toast
+    // Quick encouraging feedback toast & milestone checks
     const totalToday = (res.updated || [])
       .filter(l => l.date === new Date().toISOString().split('T')[0])
       .reduce((sum, l) => sum + (l.amountMl || 0), 0);
+    const targetMl = settings?.targetWaterMl || 3000;
+    const prevTotal = totalToday - amountMl;
 
-    showToast({
-      type: 'success',
-      title: `+${amountMl} ml de agua fresca`,
-      message: `Total de hoy: ${totalToday} ml de tu meta (${settings?.targetWaterMl || 3000} ml)`,
-      duration: 3000,
-    });
+    if (prevTotal < targetMl && totalToday >= targetMl) {
+      // 100% Milestone achieved!
+      showToast({
+        type: 'heart',
+        title: '¡Meta de Hidratación Renal Completada!',
+        message: `¡Fantástico! Has alcanzado los ${totalToday} ml diarios. Tus riñones están óptimamente protegidos.`,
+        duration: 5500,
+      });
+      triggerSystemNotification(
+        '¡Meta de Hidratación Alcanzada!',
+        `Completaste los ${totalToday} ml de tu meta renal. ¡Tus riñones te lo agradecen!`,
+        'water_goal_reached'
+      );
+      addNotificationToHistory({
+        type: 'love',
+        title: '¡Meta Diaria Completada!',
+        message: `Has consumido ${totalToday} ml de agua hoy. ¡Gran disciplina de autocuidado!`
+      });
+    } else if (prevTotal < (targetMl / 2) && totalToday >= (targetMl / 2)) {
+      // 50% Milestone
+      showToast({
+        type: 'water',
+        title: '¡50% de tu Meta Diaria!',
+        message: `Llevas ${totalToday} ml de agua fresca. Excelente filtración y ritmo renal.`,
+        duration: 4000,
+      });
+      addNotificationToHistory({
+        type: 'water',
+        title: '50% de Meta Alcanzado',
+        message: `Vas por la mitad de tu meta renal con ${totalToday} ml.`
+      });
+    } else {
+      showToast({
+        type: 'success',
+        title: `+${amountMl} ml de agua fresca`,
+        message: `Total de hoy: ${totalToday} ml de tu meta (${targetMl} ml)`,
+        duration: 3200,
+      });
+    }
 
     return res;
   };
@@ -628,13 +695,42 @@ export default function App() {
     });
   }, [settings?.mealSchedule, mealLogs]);
 
-  // Periodic reminder simulation / check (Meals + Hydration intervals)
+  // Periodic reminder simulation / check (Meals + Hydration intervals + Duolingo Escalation)
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date();
       const currentHours = now.getHours();
+      const currentMins = now.getMinutes();
       const currentTimeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
       const today = now.toISOString().split('T')[0];
+
+      // Check quiet hours (No Molestar)
+      const quietEnabled = settings?.quietHoursEnabled !== false;
+      const quietStart = settings?.quietStart || '23:00';
+      const quietEnd = settings?.quietEnd || '07:00';
+      
+      const isQuietTime = () => {
+        if (!quietEnabled) return false;
+        try {
+          const [sH, sM] = quietStart.split(':').map(Number);
+          const [eH, eM] = quietEnd.split(':').map(Number);
+          const nowVal = currentHours * 60 + currentMins;
+          const startVal = sH * 60 + sM;
+          const endVal = eH * 60 + eM;
+          if (startVal > endVal) {
+            // Crosses midnight, e.g. 23:00 to 07:00
+            return nowVal >= startVal || nowVal < endVal;
+          } else {
+            return nowVal >= startVal && nowVal < endVal;
+          }
+        } catch {
+          return false;
+        }
+      };
+
+      if (isQuietTime()) {
+        return; // Mute periodic alarms during quiet hours
+      }
 
       // 1. Check exact meal schedule time
       if (settings?.mealSchedule) {
@@ -644,53 +740,101 @@ export default function App() {
           if (!alreadyTaken && (!activeAlert || activeAlert.mealId !== matchMeal.id)) {
             triggerHaptic([350, 120, 350, 120, 500]);
             if (soundEnabled) playAlertSound('loud_meal');
-            triggerSystemNotification(
-              `Hora de ${matchMeal.name} (${matchMeal.time})`,
-              `Es momento de comer a tus horas exactas. Recuerda evitar la sal y beber agua.`,
-              `renal_meal_${matchMeal.id}`
-            );
+            const title = `Hora de ${matchMeal.name} (${matchMeal.time})`;
+            const message = `Es momento de comer a tus horas exactas. Recuerda evitar la sal y beber agua.`;
+            triggerSystemNotification(title, message, `renal_meal_${matchMeal.id}`);
+            addNotificationToHistory({ type: 'meal', title, message });
             setActiveAlert({
               type: 'meal',
               mealId: matchMeal.id,
-              title: `Hora de ${matchMeal.name} (${matchMeal.time})`,
+              title,
               message: `Tu horario de comida (${matchMeal.time}) ha llegado. Mantén tu regularidad digestiva para proteger tus riñones.`
             });
           }
         }
       }
 
-      // 2. Check periodic water reminder (Active between 07:00 and 22:30)
-      if (currentHours >= 7 && currentHours <= 22) {
-        const intervalMs = (settings?.reminderIntervalMins || 60) * 60 * 1000;
-        const timeSinceLastAlert = Date.now() - lastWaterAlertTimeRef.current;
+      // 2. Check hydration reminders with Progressive Duolingo Escalation
+      const intervalMins = settings?.reminderIntervalMins || 60;
+      const intervalMs = intervalMins * 60 * 1000;
+      const timeSinceLastAlert = Date.now() - lastWaterAlertTimeRef.current;
+      const minsElapsed = Math.floor(timeSinceLastAlert / (60 * 1000));
+      const duolingoActive = settings?.duolingoMode !== false;
 
-        if (timeSinceLastAlert >= intervalMs && !activeAlert) {
-          lastWaterAlertTimeRef.current = Date.now();
-          triggerHaptic([500, 150, 500, 150, 500, 150, 800]);
-          if (soundEnabled) playAlertSound('loud_alarm');
-          
-          triggerSystemNotification(
-            'Recordatorio de Hidratación Renal',
-            '¡Hora de tomar agua! Tus riñones necesitan diluir sales para prevenir cólicos.',
-            'renal_water_alarm'
-          );
+      // Duolingo Escalation Level 3: Over 90 mins without drinking (Severe, invasive reminder)
+      if (duolingoActive && minsElapsed >= 90 && !activeAlert) {
+        lastWaterAlertTimeRef.current = Date.now();
+        triggerHaptic([800, 150, 800, 150, 1000, 200, 1200]);
+        if (soundEnabled) playAlertSound('loud_alarm');
 
-          // Schedule NEXT alarm in background Service Worker so it sounds even if phone is locked/browser closed
-          scheduleBackgroundAlarm({
-            id: 'next_water_alarm',
-            delayMs: intervalMs,
-            title: 'Recordatorio de Hidratación Renal',
-            body: `Han transcurrido ${settings?.reminderIntervalMins || 60} minutos. Bebe un vaso de agua fresca (250 ml) para prevenir cristales.`,
-            tag: 'renal_water_alarm',
-            tab: 'dashboard'
-          });
+        const title = '¡Tus riñones no pueden esperar!';
+        const message = 'Han pasado más de 90 minutos sin agua. Cada minuto sin hidratación sobrecarga tus riñones con sales concentradas. ¡Bebe un vaso de agua AHORA!';
 
-          setActiveAlert({
-            type: 'water',
-            title: 'Recordatorio de Hidratación Renal',
-            message: `Han transcurrido ${settings?.reminderIntervalMins || 60} minutos. Beber un vaso de agua fresca (250 ml) previene la formación de cristales.`
-          });
-        }
+        triggerSystemNotification(title, message, 'duolingo_urgent_water');
+        addNotificationToHistory({ type: 'duolingo', title, message });
+        showToast({
+          type: 'duolingo',
+          title: '¡Alerta Crítica Duolingo!',
+          message: 'Más de 90 min sin agua. Tus riñones necesitan diluir sales de inmediato.',
+          duration: 6500
+        });
+
+        setActiveAlert({
+          type: 'water',
+          title,
+          message
+        });
+      }
+      // Duolingo Escalation Level 2: Between 75 and 89 mins without drinking
+      else if (duolingoActive && minsElapsed >= 75 && timeSinceLastAlert >= intervalMs && !activeAlert) {
+        lastWaterAlertTimeRef.current = Date.now();
+        triggerHaptic([600, 150, 600, 150, 800]);
+        if (soundEnabled) playAlertSound('loud_alarm');
+
+        const title = '¡Alerta Renal! Retraso en tu hidratación';
+        const message = 'Llevas 75 minutos sin registrar agua. La regularidad es vital para prevenir cólicos y cálculos.';
+
+        triggerSystemNotification(title, message, 'duolingo_warning_water');
+        addNotificationToHistory({ type: 'urgent', title, message });
+        showToast({
+          type: 'warning',
+          title,
+          message,
+          duration: 5000
+        });
+
+        setActiveAlert({
+          type: 'water',
+          title,
+          message
+        });
+      }
+      // Standard Water Reminder: At normal interval
+      else if (timeSinceLastAlert >= intervalMs && !activeAlert) {
+        lastWaterAlertTimeRef.current = Date.now();
+        triggerHaptic([500, 150, 500, 150, 500, 150, 800]);
+        if (soundEnabled) playAlertSound('loud_alarm');
+        
+        const title = 'Recordatorio de Hidratación Renal';
+        const message = `Han transcurrido ${intervalMins} minutos. Bebe un vaso de agua fresca (250 ml) para prevenir cristales.`;
+
+        triggerSystemNotification(title, message, 'renal_water_alarm');
+        addNotificationToHistory({ type: 'water', title, message });
+
+        scheduleBackgroundAlarm({
+          id: 'next_water_alarm',
+          delayMs: intervalMs,
+          title,
+          body: message,
+          tag: 'renal_water_alarm',
+          tab: 'dashboard'
+        });
+
+        setActiveAlert({
+          type: 'water',
+          title,
+          message
+        });
       }
 
     }, 20000); // Check every 20 seconds
@@ -700,22 +844,42 @@ export default function App() {
 
   // Trigger manual simulated alert test with loud sound and lock-screen buttons
   const handleTriggerSimulatedWaterAlert = (type = 'water') => {
+    if (type === 'duolingo') {
+      triggerHaptic([800, 150, 800, 150, 1000, 200, 1200]);
+      if (soundEnabled) playAlertSound('loud_alarm');
+      const title = '¡Tus riñones no pueden esperar!';
+      const message = 'Alerta Duolingo: Llevas demasiado tiempo sin agua. Tus riñones necesitan diluir sales con urgencia. ¡Toma 250 ml ya!';
+      triggerSystemNotification(title, message, 'duolingo_urgent_water');
+      addNotificationToHistory({ type: 'duolingo', title, message });
+      setActiveAlert({
+        type: 'water',
+        title,
+        message
+      });
+      showToast({
+        type: 'duolingo',
+        title: '¡Alerta Estilo Duolingo Ejecutada!',
+        message: 'Insistencia crítica, vibración prolongada y notificación invasiva activadas',
+        duration: 5500,
+      });
+      return;
+    }
+
     if (type === 'love') {
       triggerHaptic([400, 150, 400, 150, 600, 200, 800]);
       if (soundEnabled) playAlertSound('love');
-      triggerSystemNotification(
-        'Alejandro te ha enviado un mensaje de amor y ánimo',
-        '¡Hola mi amor! Recuerda tomar agua hoy. Estoy muy orgulloso de ti',
-        'care_note_test'
-      );
+      const title = 'Alejandro te ha enviado un mensaje de amor y ánimo';
+      const message = '¡Hola mi amor! Recuerda tomar agua hoy. Estoy muy orgulloso de ti';
+      triggerSystemNotification(title, message, 'care_note_test');
+      addNotificationToHistory({ type: 'love', title, message });
       setActiveAlert({
         type: 'love',
-        title: 'Alejandro te ha enviado un mensaje de amor y ánimo',
+        title,
         message: '¡Hola mi amor! Recuerda tomar agüita fresca. Estoy muy orgulloso de ti y de cómo te cuidas cada día.'
       });
       showToast({
         type: 'heart',
-        title: 'Prueba de Mensaje con Amor',
+        title: 'Mensaje con Amor Recibido',
         message: 'Sonido romántico y notificación en pantalla de bloqueo enviada',
       });
       return;
@@ -724,11 +888,10 @@ export default function App() {
     if (type === 'meal') {
       triggerHaptic([350, 120, 350, 120, 500]);
       if (soundEnabled) playAlertSound('loud_meal');
-      triggerSystemNotification(
-        'Hora de Almuerzo (13:00)',
-        'Es momento de comer a tus horas exactas. Recuerda hidratarte y evitar la sal.',
-        'renal_meal_test'
-      );
+      const title = 'Hora de Almuerzo (13:00)';
+      const message = 'Es momento de comer a tus horas exactas. Recuerda hidratarte y evitar la sal.';
+      triggerSystemNotification(title, message, 'renal_meal_test');
+      addNotificationToHistory({ type: 'meal', title, message });
       setActiveAlert({
         type: 'meal',
         title: 'Alarma de Comida del Día',
@@ -745,18 +908,17 @@ export default function App() {
     // Default: Loud water alert
     triggerHaptic([500, 150, 500, 150, 500, 150, 800]);
     if (soundEnabled) playAlertSound('loud_alarm');
-    triggerSystemNotification(
-      'Alerta de Hidratación Renal (Fuerte)',
-      '¡Hora de tomar agua! Tus riñones lo necesitan para diluir sales y prevenir cálculos.',
-      'renal_water_alarm'
-    );
+    const title = 'Alerta de Hidratación Renal';
+    const message = '¡Hora de tomar agua! Tus riñones lo necesitan para diluir sales y prevenir cálculos.';
+    triggerSystemNotification(title, message, 'renal_water_alarm');
+    addNotificationToHistory({ type: 'water', title, message });
     setActiveAlert({
       type: 'water',
       title: 'Recordatorio de Hidratación Renal',
       message: 'Han pasado 60 minutos desde tu último registro. Beber un vaso de agua fresca (250 ml) previene la concentración de oxalato y calcio.'
     });
     showToast({
-      type: 'info',
+      type: 'water',
       title: 'Alarma Sonora de Agua',
       message: 'Sonido penetrante y vibración máxima ejecutados con éxito',
     });
@@ -782,6 +944,9 @@ export default function App() {
         theme={theme}
         onToggleTheme={handleToggleTheme}
         onOpenWhatsAppCheckIn={() => setIsWhatsAppCheckInOpen(true)}
+        onOpenNotificationCenter={() => setIsNotifCenterOpen(true)}
+        unreadNotificationsCount={notificationHistory.length}
+        onOpenIosGuide={() => setIsIosGuideOpen(true)}
       />
 
       {/* Main Container */}
@@ -964,6 +1129,14 @@ export default function App() {
             >
               <Heart className="w-3.5 h-3.5 text-rosePastel-500 fill-rosePastel-500/25" />
             </button>
+            <button
+              type="button"
+              onClick={() => handleTriggerSimulatedWaterAlert('duolingo')}
+              title="Probar alerta invasiva estilo Duolingo"
+              className="p-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-500 border border-rose-200 dark:border-rose-900/50 text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
+            >
+              <Flame className="w-3.5 h-3.5 text-rose-500 stroke-[2.4]" />
+            </button>
           </div>
         </div>
 
@@ -1123,6 +1296,7 @@ export default function App() {
         isAdmin={currentUser?.role === 'admin'}
         onOpenSos={() => setIsSosOpen(true)}
         onOpenWhatsAppCheckIn={() => setIsWhatsAppCheckInOpen(true)}
+        onOpenNotificationCenter={() => setIsNotifCenterOpen(true)}
       />
 
       {/* Emergency SOS Modal */}
@@ -1174,6 +1348,31 @@ export default function App() {
           if (amount) handleAddWater(amount);
           setActiveAlert(null);
         }}
+      />
+
+      {/* In-App Notification Center Modal */}
+      <NotificationCenterModal
+        isOpen={isNotifCenterOpen}
+        onClose={() => setIsNotifCenterOpen(false)}
+        notifications={notificationHistory}
+        onClearAll={() => {
+          setNotificationHistory([]);
+          try {
+            localStorage.removeItem('breyhabitos_notification_history_v1');
+          } catch {}
+        }}
+        settings={settings}
+        onUpdateSettings={handleUpdateSettings}
+        onOpenIosGuide={() => {
+          setIsNotifCenterOpen(false);
+          setIsIosGuideOpen(true);
+        }}
+      />
+
+      {/* iOS Lock Screen Notification Guide */}
+      <IosNotificationGuideModal
+        isOpen={isIosGuideOpen}
+        onClose={() => setIsIosGuideOpen(false)}
       />
 
       {/* Floating PWA Install Prompt Banner */}

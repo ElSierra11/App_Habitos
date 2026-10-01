@@ -13,7 +13,8 @@ import {
   MessageSquareHeart, 
   Menu, 
   X,
-  Heart
+  Heart,
+  Flame
 } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 
@@ -23,7 +24,8 @@ export const MobileBottomNav = ({
   onQuickAddWater, 
   isAdmin,
   onOpenSos,
-  onOpenWhatsAppCheckIn
+  onOpenWhatsAppCheckIn,
+  onOpenNotificationCenter
 }) => {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
 
@@ -143,6 +145,36 @@ export const MobileBottomNav = ({
                 <span className="text-xs font-bold leading-tight">SOS Cólico</span>
               </button>
             </div>
+
+            {/* Notification & Duolingo Quick Entry */}
+            {onOpenNotificationCenter && (
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic([12]);
+                  setIsMoreOpen(false);
+                  onOpenNotificationCenter();
+                }}
+                className="w-full flex items-center justify-between p-3 rounded-2xl border border-rosePastel-200 dark:border-rosePastel-900/60 bg-rosePastel-50/50 dark:bg-rosePastel-950/30 text-left cursor-pointer active:scale-95 transition-all mb-3"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center text-rose-500 bg-rose-100/80 dark:bg-rose-950/60">
+                    <Flame className="w-4 h-4 stroke-[2.2]" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white">
+                      Alertas & Modo Duolingo
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Historial de avisos y modo insistente
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold text-rosePastel-600 dark:text-rosePastel-400 bg-white dark:bg-slate-800 px-2 py-1 rounded-lg border border-rosePastel-200 dark:border-slate-700 shadow-2xs">
+                  Configurar
+                </span>
+              </button>
+            )}
 
             {/* Menu Items List */}
             <div className="space-y-2">

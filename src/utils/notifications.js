@@ -40,6 +40,12 @@ export const triggerSystemNotification = async (title, body, tag = 'breyhabitos_
     actions = [
       { action: 'open_love', title: 'Leer Mensaje con Amor' }
     ];
+  } else if (tag.startsWith('duolingo') || tag.startsWith('urgent')) {
+    vibrate = [800, 120, 800, 120, 1000, 150, 1200];
+    actions = [
+      { action: 'drink_250', title: '¡Tomé agua ya!' },
+      { action: 'snooze_10', title: 'Dame 10 min' }
+    ];
   } else if (tag.startsWith('renal_meal')) {
     vibrate = [350, 120, 350, 120, 500];
     actions = [

@@ -18,7 +18,8 @@ import {
   Settings,
   X,
   MessageSquareHeart,
-  Heart
+  Heart,
+  Flame
 } from 'lucide-react';
 import { triggerHaptic } from '../utils/haptics';
 import { requestNotificationPermission, triggerSystemNotification, getNotificationPermissionState } from '../utils/notifications';
@@ -38,7 +39,10 @@ export const Navbar = ({
   onTriggerManualSync,
   theme = 'light',
   onToggleTheme,
-  onOpenWhatsAppCheckIn
+  onOpenWhatsAppCheckIn,
+  onOpenNotificationCenter,
+  unreadNotificationsCount = 0,
+  onOpenIosGuide
 }) => {
   const isAdmin = currentUser?.role === 'admin';
   const [notifState, setNotifState] = useState(getNotificationPermissionState);
@@ -51,10 +55,15 @@ export const Navbar = ({
 
   const handleNotificationClick = async () => {
     triggerHaptic([15, 30]);
-    const granted = await requestNotificationPermission();
-    setNotifState(granted ? 'granted' : 'denied');
-    if (granted) {
-      triggerSystemNotification('Notificaciones Activas en BreyHabitos', 'Recibirás recordatorios a tiempo para tomar agua y comer.');
+    if (notifState !== 'granted') {
+      const granted = await requestNotificationPermission();
+      setNotifState(granted ? 'granted' : 'denied');
+      if (granted) {
+        triggerSystemNotification('Notificaciones Activas en BreyHabitos', 'Recibirás recordatorios a tiempo para tomar agua y comer.');
+      }
+    }
+    if (onOpenNotificationCenter) {
+      onOpenNotificationCenter();
     }
   };
 
@@ -194,8 +203,8 @@ export const Navbar = ({
             <button
               type="button"
               onClick={handleNotificationClick}
-              title={notifState === 'granted' ? 'Notificaciones activas' : 'Activar recordatorios'}
-              className={`p-2 rounded-xl border transition-all cursor-pointer shadow-xs active:scale-95 ${
+              title={notifState === 'granted' ? 'Centro de Notificaciones & Alertas' : 'Activar recordatorios'}
+              className={`p-2 rounded-xl border transition-all cursor-pointer shadow-xs active:scale-95 relative ${
                 notifState === 'granted'
                   ? 'bg-rosePastel-50 dark:bg-slate-800 text-rosePastel-600 dark:text-rosePastel-400 border-rosePastel-200 dark:border-slate-700'
                   : 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 border-amber-300'
@@ -206,8 +215,28 @@ export const Navbar = ({
               ) : (
                 <Bell className="w-4 h-4 text-amber-600 dark:text-amber-400" />
               )}
+              {unreadNotificationsCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rosePastel-500 text-white text-[9px] font-black flex items-center justify-center shadow-xs animate-pulse">
+                  {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+                </span>
+              )}
             </button>
           </div>
+
+          {/* Mobile Bell Button (< sm) */}
+          <button
+            type="button"
+            onClick={handleNotificationClick}
+            aria-label="Centro de Notificaciones"
+            className="sm:hidden p-1.5 rounded-xl bg-white dark:bg-slate-800 border border-rosePastel-200 dark:border-slate-700 text-rosePastel-600 dark:text-rosePastel-400 active:scale-95 cursor-pointer shadow-xs relative"
+          >
+            <Bell className="w-4 h-4" />
+            {unreadNotificationsCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-rosePastel-500 text-white text-[8px] font-bold flex items-center justify-center">
+                {unreadNotificationsCount}
+              </span>
+            )}
+          </button>
 
           {/* Mobile Settings Toggle (Gear button for < sm) */}
           <div className="relative sm:hidden">
@@ -301,15 +330,34 @@ export const Navbar = ({
                   <span className="text-[10px] font-bold text-slate-500">{soundEnabled ? 'Sí' : 'No'}</span>
                 </button>
 
+                {/* Alertas & Modo Duolingo */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileSettingsOpen(false);
+                    if (onOpenNotificationCenter) onOpenNotificationCenter();
+                  }}
+                  className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-rosePastel-50 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300"
+                >
+                  <span className="flex items-center space-x-2">
+                    <Flame className="w-4 h-4 text-rose-500 stroke-[2.2]" />
+                    <span>Alertas & Duolingo</span>
+                  </span>
+                  <span className="text-[10px] font-bold text-rosePastel-600 dark:text-rosePastel-400">Abrir</span>
+                </button>
+
                 {/* Notifications row */}
                 <button
                   type="button"
-                  onClick={handleNotificationClick}
+                  onClick={() => {
+                    setIsMobileSettingsOpen(false);
+                    handleNotificationClick();
+                  }}
                   className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-rosePastel-50 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300"
                 >
                   <span className="flex items-center space-x-2">
                     <BellRing className="w-4 h-4 text-rosePastel-600" />
-                    <span>Notificaciones</span>
+                    <span>Permiso Alertas</span>
                   </span>
                   <span className="text-[10px] font-bold text-slate-500">
                     {notifState === 'granted' ? 'Activas' : 'Permitir'}

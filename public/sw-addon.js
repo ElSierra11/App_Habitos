@@ -35,7 +35,7 @@ async function checkBackgroundCareNotes() {
       if (lastSeenNoteId && latest.id !== lastSeenNoteId) {
         lastSeenNoteId = latest.id;
         showAlarmNotification(
-          'Alejandro te ha enviado un mensaje de amor y ánimo 💖',
+          'Alejandro te ha enviado un mensaje de amor y ánimo',
           `"${latest.message}"`,
           `care_note_${latest.id}`,
           'dashboard'
@@ -100,26 +100,33 @@ self.addEventListener('message', (event) => {
 // Display high-priority, sticky notification with sound and vibration
 function showAlarmNotification(title, body, tag = 'renal_water_alarm', tab = 'dashboard') {
   let actions = [
-    { action: 'open_app', title: '📲 Abrir BreyHabitos' }
+    { action: 'open_app', title: 'Abrir BreyHabitos' }
   ];
   let vibrate = [500, 150, 500, 150, 500, 150, 800];
 
-  if (tag.startsWith('care_note') || tag.startsWith('love')) {
+  if (tag.startsWith('duolingo') || tag.startsWith('urgent')) {
+    // Insistent Duolingo-style vibration pattern
+    vibrate = [800, 120, 800, 120, 1000, 150, 1200];
+    actions = [
+      { action: 'drink_250', title: 'Tomé 250 ml' },
+      { action: 'snooze_10', title: 'Posponer 10 min' }
+    ];
+  } else if (tag.startsWith('care_note') || tag.startsWith('love')) {
     vibrate = [400, 150, 400, 150, 600, 200, 800];
     actions = [
-      { action: 'open_love', title: '💖 Leer con Amor' }
+      { action: 'open_love', title: 'Leer con Amor' }
     ];
   } else if (tag.startsWith('renal_meal')) {
     vibrate = [350, 120, 350, 120, 500];
     actions = [
-      { action: 'open_meal', title: '🍽 Ver Horario de Comida' },
-      { action: 'snooze_15', title: '⏱ Posponer 15m' }
+      { action: 'open_meal', title: 'Ver Horario de Comida' },
+      { action: 'snooze_15', title: 'Posponer 15 min' }
     ];
   } else if (tag.startsWith('renal_water') || tag.startsWith('water')) {
     vibrate = [500, 150, 500, 150, 500, 150, 800];
     actions = [
-      { action: 'drink_250', title: '💧 Tomé 250 ml' },
-      { action: 'snooze_15', title: '⏱ Posponer 15m' }
+      { action: 'drink_250', title: 'Tomé 250 ml' },
+      { action: 'snooze_15', title: 'Posponer 15 min' }
     ];
   }
 
@@ -167,19 +174,29 @@ self.addEventListener('notificationclick', (event) => {
   if (action === 'drink_250') {
     event.waitUntil(
       clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-        // If an open window exists, tell it to add 250ml
         for (const client of clientList) {
           if ('postMessage' in client) {
             client.postMessage({ type: 'QUICK_ADD_WATER', amount: 250 });
             return client.focus();
           }
         }
-        // Otherwise, open the app with action query param
         if (clients.openWindow) {
           return clients.openWindow('/?action=add_water_250');
         }
       })
     );
+    return;
+  }
+
+  // If user tapped "Posponer 10 min"
+  if (action === 'snooze_10') {
+    setTimeout(() => {
+      showAlarmNotification(
+        'Alerta Renal Insistente',
+        'Ya pasaron 10 minutos. No ignores a tus riñones, un vaso de 250 ml ahora mismo.',
+        'duolingo_insistent_alarm'
+      );
+    }, 10 * 60 * 1000);
     return;
   }
 
