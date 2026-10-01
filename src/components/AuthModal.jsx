@@ -80,19 +80,6 @@ export const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
     }
   };
 
-  const handleQuickLogin = (demoRole) => {
-    triggerHaptic([15]);
-    const users = getStoredUsers();
-    if (demoRole === 'admin') {
-      const admin = users.find(u => u.role === 'admin') || users[0];
-      onLoginSuccess(admin);
-      onClose();
-    } else {
-      const patient = users.find(u => u.role === 'patient') || users[1] || users[0];
-      onLoginSuccess(patient);
-      onClose();
-    }
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in-up">
@@ -279,30 +266,7 @@ export const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
           </button>
         </form>
 
-        {/* Quick Demo Access Buttons */}
-        <div className="mt-6 pt-5 border-t border-sky-100 dark:border-slate-800 text-center">
-          <p className="text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold mb-3">
-            Acceso Rápido de Prueba (1 Clic)
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('patient')}
-              className="flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl bg-sky-50 dark:bg-slate-800 hover:bg-sky-100 dark:hover:bg-slate-700 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-slate-700 text-xs font-bold transition-colors active:scale-95 cursor-pointer"
-            >
-              <HeartHandshake className="w-3.5 h-3.5 text-sky-500" />
-              <span>Paciente (Brey)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('admin')}
-              className="flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-bold transition-colors active:scale-95 cursor-pointer"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
-              <span>Admin (Alejandro)</span>
-            </button>
-          </div>
-        </div>
+
 
       </div>
     </div>
